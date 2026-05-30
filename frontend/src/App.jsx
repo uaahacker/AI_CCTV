@@ -9,7 +9,6 @@ import CameraDetail from './pages/CameraDetail.jsx';
 import Alerts from './pages/Alerts.jsx';
 import AlertRules from './pages/AlertRules.jsx';
 import Reports from './pages/Reports.jsx';
-import Billing from './pages/Billing.jsx';
 import Settings from './pages/Settings.jsx';
 import AISettings from './pages/AISettings.jsx';
 
@@ -33,7 +32,6 @@ export default function App() {
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/alerts/rules" element={<AlertRules />} />
         <Route path="/reports" element={<Reports />} />
-        <Route path="/billing" element={<Billing />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/ai" element={<AISettings />} />
       </Route>

@@ -8,11 +8,28 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- **Object tracking & zone analytics**: lightweight centroid+IoU tracker
-  (`cv_worker/worker/tracking.py`) plus per-camera `Zone` (polygon, line,
-  parking slot) configuration. Emits new `DetectionEvent` types
-  `zone_entry`, `zone_exit`, `line_crossing`, `loitering`,
-  `abandoned_object`, `queue_length`.
+- **Live HLS preview**: new `streamer` compose service spawns one ffmpeg
+  per active camera, writing rolling HLS chunks to `MEDIA_ROOT/hls/<id>/`.
+  Frontend nginx serves them at `/media/hls/<id>/index.m3u8`; new
+  `LiveFeed` React component (hls.js) embeds the player on the dashboard
+  and per-camera detail page. Tunable via `STREAMER_REFRESH_SECONDS` and
+  `STREAMER_REENCODE=1` (for H.265 cameras).
+- **Counters API**: `GET /api/analytics/counters/?camera=&hours=24` returns
+  rolling totals for people in/out, vehicles in/out, loitering,
+  abandoned objects, and a parking summary. Backed by a new
+  `CountersWidget` shown on the dashboard and per-camera page.
+- `line_crossing` events now include the object's YOLO `label` in
+  `metadata`, enabling people-vs-vehicle counter splits.
+
+### Removed
+- **Billing app**: `apps.billing` deleted along with the Stripe adapter,
+  `/api/billing/*` URLs, `stripe_webhook` throttle, `STRIPE_*` settings,
+  the `stripe` Python dependency, and the `/billing` page + sidebar entry
+  in the dashboard. **Upgrade note**: before pulling, run
+  `docker compose exec backend python manage.py migrate billing zero` to
+  drop the `billing_*` Postgres tables.
+
+
 - **Parking analytics**: `Zone.kind=parking_slot` slots produce live
   `ParkingSlotState` rows (FREE / OCCUPIED / ILLEGAL) and emit
   `parking_occupied`, `parking_vacated`, `parking_illegal`,

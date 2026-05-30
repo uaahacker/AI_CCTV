@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import StatCard from '../components/StatCard.jsx';
+import LiveFeed from '../components/LiveFeed.jsx';
+import CountersWidget from '../components/CountersWidget.jsx';
 import { Link } from 'react-router-dom';
 import { fmtDate, statusBadgeClass } from '../lib/format.js';
 
@@ -47,6 +49,32 @@ export default function Dashboard() {
         <StatCard label="Alerts today" value={alertsToday} accent="amber" />
         <StatCard label="People counted (24h)" value={peopleToday} accent="brand" />
       </div>
+
+      {/* Live feeds from up to 4 online cameras. Click a tile to open detail. */}
+      {cameras.length > 0 && (
+        <div className="card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold">Live feeds</h2>
+            <Link to="/cameras" className="text-sm text-brand-600 hover:underline">All cameras →</Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {cameras
+              .filter((c) => c.status !== 'disabled')
+              .slice(0, 4)
+              .map((c) => (
+                <Link key={c.id} to={`/cameras/${c.id}`} className="block">
+                  <LiveFeed cameraId={c.id} className="aspect-video" />
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="text-sm font-medium truncate">{c.name}</span>
+                    <span className={statusBadgeClass(c.status)}>{c.status}</span>
+                  </div>
+                </Link>
+              ))}
+          </div>
+        </div>
+      )}
+
+      <CountersWidget />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-5">

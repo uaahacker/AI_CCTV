@@ -68,8 +68,8 @@ Full diagram: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 ## Project layout
 
 ```
-backend/    Django project (config + 9 apps: accounts, organizations,
-            cameras, analytics, alerts, billing, audit, ai, compliance)
+backend/    Django project (config + 8 apps: accounts, organizations,
+            cameras, analytics, alerts, audit, ai, compliance)
 frontend/   React + Vite SPA
 cv_worker/  Standalone OpenCV worker (shares Django ORM, runs as its own process)
 infra/      nginx config for the production reverse-proxy
@@ -229,7 +229,9 @@ Higher-level guide: [docs/API.md](docs/API.md).
 - [x] Heatmaps + queue-length detector
 - [x] ONVIF auto-discovery
 - [x] Evidence-clip writer (rolling ffmpeg buffer, ≤5 s)
-- [x] Rate limiting on auth, JWT blacklist, MFA, Stripe billing
+- [x] Rate limiting on auth, JWT blacklist, MFA
+- [x] Live HLS preview on dashboard + per-camera detail (ffmpeg sidecar)
+- [x] Rolling counters API (`/api/analytics/counters/`) — people/vehicles in/out, loitering, parking
 
 ## Contributing
 

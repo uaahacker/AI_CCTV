@@ -116,6 +116,88 @@ extra_urls = [
 ]
 
 
+class CountersView(APIView):
+    """``GET /api/analytics/counters/?camera=<uuid>&hours=24``
+
+    Rolling counters powering the dashboard widgets:
+
+    - people/vehicle in/out (from ``line_crossing`` events, grouped by metadata.label)
+    - loitering / abandoned_object totals
+    - parking summary (free / occupied / illegal — current state, not windowed)
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    # Which YOLO labels count as a "vehicle" for line-crossing counters.
+    VEHICLE_LABELS = {"car", "truck", "bus", "motorcycle", "motorbike", "vehicle"}
+
+    def get(self, request):
+        hours = max(1, min(int(request.query_params.get("hours") or 24), 24 * 30))
+        since = timezone.now() - timedelta(hours=hours)
+        camera_id = request.query_params.get("camera")
+
+        events = DetectionEvent.objects.filter(
+            organization__memberships__user=request.user,
+            created_at__gte=since,
+        )
+        if camera_id:
+            events = events.filter(camera_id=camera_id)
+
+        counters = {
+            "people_in": 0, "people_out": 0,
+            "vehicles_in": 0, "vehicles_out": 0,
+            "loitering": 0, "abandoned_object": 0,
+        }
+
+        # Line crossings — bucket by metadata.label + direction.
+        line_qs = events.filter(event_type=DetectionEvent.EventType.LINE_CROSSING).values_list(
+            "metadata", flat=True
+        )
+        for meta in line_qs:
+            if not isinstance(meta, dict):
+                continue
+            label = str(meta.get("label", "")).lower()
+            direction = str(meta.get("direction", "")).upper()
+            is_vehicle = label in self.VEHICLE_LABELS
+            is_person = label == "person"
+            if direction == "IN":
+                if is_person:
+                    counters["people_in"] += 1
+                elif is_vehicle:
+                    counters["vehicles_in"] += 1
+            elif direction == "OUT":
+                if is_person:
+                    counters["people_out"] += 1
+                elif is_vehicle:
+                    counters["vehicles_out"] += 1
+
+        counters["loitering"] = events.filter(
+            event_type=DetectionEvent.EventType.LOITERING
+        ).count()
+        counters["abandoned_object"] = events.filter(
+            event_type=DetectionEvent.EventType.ABANDONED_OBJECT
+        ).count()
+
+        # Parking is "current state", not a time window — same logic as ParkingStatusView.
+        parking_qs = ParkingSlotState.objects.filter(
+            zone__camera__organization__memberships__user=request.user
+        )
+        if camera_id:
+            parking_qs = parking_qs.filter(zone__camera_id=camera_id)
+        parking = {"free": 0, "occupied": 0, "illegal": 0}
+        for s in parking_qs.values_list("state", flat=True):
+            parking[s] = parking.get(s, 0) + 1
+
+        return Response(
+            {
+                "hours": hours,
+                "camera": camera_id,
+                "counters": counters,
+                "parking": parking,
+            }
+        )
+
+
 class HeatmapView(APIView):
     """``GET /api/analytics/heatmap/?camera=<uuid>&hours=24``
 
@@ -204,4 +286,5 @@ extra_urls = [
     path("reports/ai-summary/", ReportsAISummaryView.as_view(), name="reports-ai-summary"),
     path("heatmap/", HeatmapView.as_view(), name="heatmap"),
     path("parking/", ParkingStatusView.as_view(), name="parking-status"),
+    path("counters/", CountersView.as_view(), name="counters"),
 ]

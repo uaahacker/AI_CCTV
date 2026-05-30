@@ -15,7 +15,6 @@ api_v1_patterns = [
     path("cameras/", include("apps.cameras.urls")),
     path("analytics/", include("apps.analytics.urls")),
     path("alerts/", include("apps.alerts.urls")),
-    path("billing/", include("apps.billing.urls")),
     path("audit/", include("apps.audit.urls")),
     path("ai/", include("apps.ai.urls")),
     path("compliance/", include("apps.compliance.urls")),

@@ -6,7 +6,6 @@ const nav = [
   { to: '/alerts', label: 'Alerts', icon: '⚠' },
   { to: '/alerts/rules', label: 'Alert rules', icon: '⚑' },
   { to: '/reports', label: 'Reports', icon: '📊' },
-  { to: '/billing', label: 'Billing', icon: '$' },
   { to: '/settings', label: 'Settings', icon: '⚙' },
   { to: '/settings/ai', label: 'AI Settings', icon: '✨' },
 ];

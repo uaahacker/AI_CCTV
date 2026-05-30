@@ -53,7 +53,6 @@ INSTALLED_APPS = [
     "apps.cameras",
     "apps.analytics",
     "apps.alerts",
-    "apps.billing",
     "apps.audit",
     "apps.ai",
     "apps.compliance",
@@ -166,7 +165,6 @@ REST_FRAMEWORK = {
         "auth_register": env("THROTTLE_AUTH_REGISTER", "5/hour"),
         "auth_token_refresh": env("THROTTLE_AUTH_REFRESH", "60/min"),
         "auth_mfa_verify": env("THROTTLE_AUTH_MFA", "10/min"),
-        "stripe_webhook": env("THROTTLE_STRIPE_WEBHOOK", "120/min"),
     },
 }
 
@@ -194,14 +192,6 @@ MFA_ENFORCEMENT = env("MFA_ENFORCEMENT", "soft")
 MFA_ISSUER = env("MFA_ISSUER", "AI CCTV Analytics")
 # Lifetime of the pre-MFA challenge token returned by /auth/token/.
 MFA_CHALLENGE_LIFETIME_SECONDS = int(env("MFA_CHALLENGE_LIFETIME_SECONDS", "300") or 300)
-
-# --- Stripe (optional; disabled unless STRIPE_SECRET_KEY is set) -------
-STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", "")
-STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", "")
-STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", "")
-STRIPE_SUCCESS_URL = env("STRIPE_SUCCESS_URL", "")
-STRIPE_CANCEL_URL = env("STRIPE_CANCEL_URL", "")
-STRIPE_ENABLED = bool(STRIPE_SECRET_KEY)
 
 # --- CORS ---------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env_list(

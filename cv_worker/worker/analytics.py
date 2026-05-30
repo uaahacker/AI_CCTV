@@ -159,6 +159,7 @@ class CameraAnalytics:
                     "zone_id": z.id,
                     "track_id": trk.track_id,
                     "direction": direction,
+                    "label": trk.label,
                 })
         return events
 

@@ -197,6 +197,27 @@ docker compose exec backend python manage.py migrate --noinput
 docker compose exec backend python manage.py collectstatic --noinput
 ```
 
+### 9a. One-off: dropping the billing app (Unreleased)
+
+The `apps.billing` Django app was removed. **Before** you `git pull` the
+release that deletes it, drop its Postgres tables — otherwise `migrate`
+will leave orphan `billing_*` tables forever and `showmigrations` will
+complain about an unknown app:
+
+```bash
+docker compose exec backend python manage.py migrate billing zero
+git pull
+docker compose build --no-cache backend frontend cv_worker streamer
+docker compose --profile production up -d
+```
+
+Verify the new live-feed pipeline:
+
+```bash
+docker compose logs -f streamer | head -40           # ffmpegs spawning
+curl -fsS "https://YOUR_DOMAIN/api/analytics/counters/?hours=24" -H "Authorization: Bearer $TOKEN"
+```
+
 ## 10. Rolling back
 
 ```bash

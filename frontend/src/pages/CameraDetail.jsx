@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { fmtDate, statusBadgeClass } from '../lib/format.js';
+import LiveFeed from '../components/LiveFeed.jsx';
+import CountersWidget from '../components/CountersWidget.jsx';
 
 export default function CameraDetail() {
   const { id } = useParams();
@@ -32,6 +34,15 @@ export default function CameraDetail() {
           <p className="text-sm text-slate-500">{cam.location || 'No location'}</p>
         </div>
         <span className={statusBadgeClass(cam.status)}>{cam.status}</span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <LiveFeed cameraId={id} className="aspect-video w-full" />
+        </div>
+        <div>
+          <CountersWidget cameraId={id} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
