@@ -89,7 +89,7 @@ export default function AlertRules() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Alert rules</h1>
           <p className="text-sm text-slate-500">Trigger alerts when detections cross thresholds.</p>
@@ -97,7 +97,8 @@ export default function AlertRules() {
         <button className="btn-primary" onClick={openCreate}>+ New rule</button>
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="card">
+        <div className="table-scroll">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 dark:bg-slate-800/50 text-left text-slate-500">
             <tr>
@@ -129,7 +130,7 @@ export default function AlertRules() {
                   <td className="px-4 py-3">
                     <span className={r.is_active ? 'badge-green' : 'badge-gray'}>{r.is_active ? 'on' : 'off'}</span>
                   </td>
-                  <td className="px-4 py-3 text-right space-x-2">
+                  <td className="px-4 py-3 text-right whitespace-nowrap space-x-2">
                     <button onClick={() => openEdit(r)} className="btn-secondary !py-1 !px-2 text-xs">Edit</button>
                     <button onClick={() => remove(r.id)} className="btn-danger !py-1 !px-2 text-xs">Delete</button>
                   </td>
@@ -138,6 +139,7 @@ export default function AlertRules() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       <Modal
@@ -157,7 +159,7 @@ export default function AlertRules() {
             <label className="label">Name</label>
             <input className="input" required value={form.name} onChange={(e) => setField('name', e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label">Organization</label>
               <select className="input" required value={form.organization} onChange={(e) => setField('organization', e.target.value)}>
@@ -175,7 +177,7 @@ export default function AlertRules() {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="label">Rule type</label>
               <select className="input" value={form.rule_type} onChange={(e) => setField('rule_type', e.target.value)}>
@@ -215,7 +217,7 @@ export default function AlertRules() {
                 onChange={(e) => setField('threshold_value', Number(e.target.value))} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label">Notification email</label>
               <input className="input" type="email" value={form.notification_email}

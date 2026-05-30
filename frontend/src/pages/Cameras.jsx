@@ -89,7 +89,7 @@ export default function Cameras() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Cameras</h1>
           <p className="text-sm text-slate-500">Manage RTSP/IP camera connections.</p>
@@ -97,7 +97,8 @@ export default function Cameras() {
         <button className="btn-primary" onClick={openCreate}>+ Add camera</button>
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="card">
+        <div className="table-scroll">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 dark:bg-slate-800/50 text-left text-slate-500">
             <tr>
@@ -122,7 +123,7 @@ export default function Cameras() {
                 <td className="px-4 py-3">{c.location || '—'}</td>
                 <td className="px-4 py-3"><span className={statusBadgeClass(c.status)}>{c.status}</span></td>
                 <td className="px-4 py-3 text-slate-500">{fmtDate(c.last_seen_at)}</td>
-                <td className="px-4 py-3 text-right space-x-2">
+                <td className="px-4 py-3 text-right whitespace-nowrap space-x-2">
                   <button onClick={() => openEdit(c)} className="btn-secondary !py-1 !px-2 text-xs">Edit</button>
                   <button onClick={() => testConn(c.id)} className="btn-secondary !py-1 !px-2 text-xs">Test</button>
                   <button onClick={() => remove(c.id)} className="btn-danger !py-1 !px-2 text-xs">Delete</button>
@@ -131,6 +132,7 @@ export default function Cameras() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       <Modal

@@ -27,10 +27,10 @@ export default function CameraDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
+        <div className="min-w-0">
           <Link to="/cameras" className="text-sm text-brand-600 hover:underline">← Cameras</Link>
-          <h1 className="text-2xl font-semibold mt-1">{cam.name}</h1>
+          <h1 className="text-2xl font-semibold mt-1 truncate">{cam.name}</h1>
           <p className="text-sm text-slate-500">{cam.location || 'No location'}</p>
         </div>
         <span className={statusBadgeClass(cam.status)}>{cam.status}</span>

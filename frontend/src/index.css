@@ -35,4 +35,9 @@
   .badge-red    { @apply badge bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300; }
   .badge-gray   { @apply badge bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300; }
   .badge-amber  { @apply badge bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300; }
+
+  /* Horizontally scrolls a wide table on small screens instead of breaking
+     the page layout. Use as: <div class="table-scroll"><table>…</table></div> */
+  .table-scroll { @apply -mx-4 sm:mx-0 overflow-x-auto; }
+  .table-scroll > table { @apply min-w-[640px] w-full; }
 }

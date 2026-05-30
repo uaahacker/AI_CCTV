@@ -24,12 +24,12 @@ export default function Alerts() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Alerts</h1>
           <p className="text-sm text-slate-500">Triggered events from your rules engine.</p>
         </div>
-        <select className="input max-w-[160px]" value={filter} onChange={(e) => setFilter(e.target.value)}>
+        <select className="input max-w-[200px]" value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="all">All</option>
           <option value="new">New</option>
           <option value="acknowledged">Acknowledged</option>
@@ -37,7 +37,8 @@ export default function Alerts() {
         </select>
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="card">
+        <div className="table-scroll">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 dark:bg-slate-800/50 text-left text-slate-500">
             <tr>
@@ -67,7 +68,7 @@ export default function Alerts() {
                 </td>
                 <td className="px-4 py-3"><span className={severityBadgeClass(a.severity)}>{a.severity}</span></td>
                 <td className="px-4 py-3 capitalize">{a.status}</td>
-                <td className="px-4 py-3 text-right space-x-2">
+                <td className="px-4 py-3 text-right whitespace-nowrap space-x-2">
                   {a.status !== 'acknowledged' && (
                     <button onClick={() => updateStatus(a.id, 'acknowledged')} className="btn-secondary !py-1 !px-2 text-xs">Ack</button>
                   )}
@@ -79,6 +80,7 @@ export default function Alerts() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

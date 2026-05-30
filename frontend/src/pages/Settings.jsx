@@ -57,9 +57,9 @@ export default function Settings() {
             </li>
           ))}
         </ul>
-        <form onSubmit={createOrg} className="mt-4 flex gap-2">
+        <form onSubmit={createOrg} className="mt-4 flex flex-col sm:flex-row gap-2">
           <input className="input" placeholder="New organization name" value={name} onChange={(e) => setName(e.target.value)} required />
-          <button className="btn-primary">Create</button>
+          <button className="btn-primary shrink-0">Create</button>
         </form>
         {err && <div className="mt-2 text-sm text-red-600">{err}</div>}
       </div>

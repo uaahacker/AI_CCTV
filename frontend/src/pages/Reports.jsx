@@ -43,17 +43,17 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-start sm:items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Reports</h1>
           <p className="text-sm text-slate-500">Aggregated detection analytics.</p>
         </div>
-        <div className="flex gap-2">
-          <select className="input" value={camera} onChange={(e) => setCamera(e.target.value)}>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <select className="input flex-1 sm:flex-initial sm:max-w-[200px]" value={camera} onChange={(e) => setCamera(e.target.value)}>
             <option value="">All cameras</option>
             {cameras.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <select className="input" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+          <select className="input flex-1 sm:flex-initial sm:max-w-[160px]" value={days} onChange={(e) => setDays(Number(e.target.value))}>
             <option value={1}>Last 24h</option>
             <option value={7}>Last 7 days</option>
             <option value={30}>Last 30 days</option>
@@ -132,16 +132,17 @@ export default function Reports() {
 
           <div className="card p-5">
             <h2 className="font-semibold mb-3">Per camera</h2>
+            <div className="table-scroll">
             <table className="w-full text-sm">
               <thead className="text-left text-slate-500">
-                <tr><th className="py-2">Camera</th><th className="py-2">Total</th><th className="py-2">Peak</th></tr>
+                <tr><th className="py-2 px-2">Camera</th><th className="py-2 px-2">Total</th><th className="py-2 px-2">Peak</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {(data?.per_camera || []).map((row) => (
                   <tr key={row.camera}>
-                    <td className="py-2">{row.camera__name}</td>
-                    <td className="py-2">{row.total}</td>
-                    <td className="py-2">{row.peak}</td>
+                    <td className="py-2 px-2">{row.camera__name}</td>
+                    <td className="py-2 px-2">{row.total}</td>
+                    <td className="py-2 px-2">{row.peak}</td>
                   </tr>
                 ))}
                 {(data?.per_camera || []).length === 0 && (
@@ -149,6 +150,7 @@ export default function Reports() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}
