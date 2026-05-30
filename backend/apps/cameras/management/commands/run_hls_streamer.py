@@ -63,7 +63,8 @@ class Command(BaseCommand):
 
         refresh = opts["refresh"]
         reencode = opts["reencode"]
-        processes: dict[str, subprocess.Popen] = {}
+        # cam_id -> (Popen, rtsp_url) so we can detect URL changes.
+        processes: dict[str, tuple[subprocess.Popen, str]] = {}
 
         def shutdown(*_):
             self.stdout.write("[streamer] shutdown signal — stopping ffmpegs…")
@@ -89,7 +90,7 @@ class Command(BaseCommand):
     # ------------------------------------------------------------------
     def _sync_once(
         self,
-        processes: dict[str, subprocess.Popen],
+        processes: dict,
         hls_root: Path,
         reencode: bool,
     ) -> None:
@@ -106,14 +107,23 @@ class Command(BaseCommand):
             if url:
                 desired[str(cam.id)] = url
 
-        # 1. Start / restart missing
+        # 1. Start / restart missing OR when the RTSP URL changed
         for cid, url in desired.items():
-            proc = processes.get(cid)
-            if proc is not None and proc.poll() is None:
-                continue  # still alive
-            if proc is not None:
+            existing = processes.get(cid)
+            proc = existing[0] if existing else None
+            current_url = existing[1] if existing else None
+            alive = proc is not None and proc.poll() is None
+
+            if alive and current_url == url:
+                continue  # nothing to do
+            if alive and current_url != url:
+                self.stdout.write(f"[streamer] {cid}: URL changed, restarting ffmpeg")
+                self._stop(processes, cid)
+            elif proc is not None:
                 self.stdout.write(f"[streamer] {cid}: ffmpeg exited rc={proc.returncode}, restarting")
-            processes[cid] = self._start(cid, url, hls_root, reencode)
+
+            new_proc = self._start(cid, url, hls_root, reencode)
+            processes[cid] = (new_proc, url)
 
         # 2. Stop removed / deactivated
         for cid in list(processes):
@@ -168,10 +178,11 @@ class Command(BaseCommand):
         )
 
     # ------------------------------------------------------------------
-    def _stop(self, processes: dict[str, subprocess.Popen], cam_id: str) -> None:
-        proc = processes.pop(cam_id, None)
-        if proc is None:
+    def _stop(self, processes: dict, cam_id: str) -> None:
+        entry = processes.pop(cam_id, None)
+        if entry is None:
             return
+        proc = entry[0] if isinstance(entry, tuple) else entry
         try:
             proc.terminate()
             proc.wait(timeout=5)
