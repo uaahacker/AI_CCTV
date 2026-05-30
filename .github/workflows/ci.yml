@@ -59,7 +59,8 @@ jobs:
       - name: Make + run migrations
         working-directory: backend
         run: |
-          python manage.py makemigrations --noinput
+          python manage.py makemigrations --noinput \
+            accounts organizations cameras analytics alerts audit ai compliance
           python manage.py migrate --noinput
 
       - name: Run pytest
