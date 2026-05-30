@@ -167,6 +167,10 @@ REST_FRAMEWORK = {
         "auth_register": env("THROTTLE_AUTH_REGISTER", "5/hour"),
         "auth_token_refresh": env("THROTTLE_AUTH_REFRESH", "60/min"),
         "auth_mfa_verify": env("THROTTLE_AUTH_MFA", "10/min"),
+        # Password reset + email verification — anonymous + tight bucket.
+        "password_reset": env("THROTTLE_PASSWORD_RESET", "5/hour"),
+        "email_verify": env("THROTTLE_EMAIL_VERIFY", "5/hour"),
+        "media_sign": env("THROTTLE_MEDIA_SIGN", "120/min"),
     },
 }
 
@@ -242,6 +246,35 @@ PRIVACY_BLUR_FACES = env_bool("PRIVACY_BLUR_FACES", True)
 PRIVACY_FACIAL_RECOGNITION_ENABLED = env_bool("PRIVACY_FACIAL_RECOGNITION_ENABLED", False)
 CONSENT_TERMS_VERSION = env("CONSENT_TERMS_VERSION", "1.0")
 
+# --- Data retention defaults --------------------------------------------
+# Used by Organization.retention_days (per-org override possible) and the
+# `apps.common.tasks.purge_expired_data` daily Celery beat task.
+DEFAULT_RETENTION_DAYS = int(env("DEFAULT_RETENTION_DAYS", "90") or 90)
+# Audit + consent rows live longer for legal/compliance reasons.
+AUDIT_RETENTION_DAYS = int(env("AUDIT_RETENTION_DAYS", "365") or 365)
+
+# --- Signed media URLs --------------------------------------------------
+# HMAC-SHA256 signed query string protects /api/media/file/* — used for
+# HLS playlists, evidence clips and downloadable recordings. Falls back to
+# SECRET_KEY so the system still works out-of-the-box; set explicitly for
+# multi-instance deployments so all replicas agree on the signature.
+MEDIA_SIGNING_KEY = env("MEDIA_SIGNING_KEY", "") or SECRET_KEY
+MEDIA_URL_DEFAULT_TTL_SECONDS = int(env("MEDIA_URL_DEFAULT_TTL_SECONDS", "3600") or 3600)
+
+# --- Public site URL (password-reset + verification links) --------------
+# Used to build absolute links in transactional emails. The frontend route
+# is responsible for rendering the matching page (/password-reset/<token>).
+PUBLIC_SITE_URL = env("PUBLIC_SITE_URL", "http://localhost:5173").rstrip("/")
+
+# --- Recording / clip library -------------------------------------------
+# When a camera has recording_policy="continuous", the streamer-produced
+# HLS segments are promoted into hourly MP4 files under MEDIA_ROOT/recordings.
+# Set RECORDING_RETENTION_DAYS=0 to disable promotion entirely.
+RECORDING_RETENTION_DAYS = int(env("RECORDING_RETENTION_DAYS", "7") or 7)
+RECORDING_PROMOTE_INTERVAL_MINUTES = int(
+    env("RECORDING_PROMOTE_INTERVAL_MINUTES", "15") or 15
+)
+
 # --- Security hardening for production ---------------------------------
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
@@ -265,3 +298,33 @@ LOGGING = {
     },
     "root": {"handlers": ["console"], "level": "INFO"},
 }
+
+# --- Sentry (optional) --------------------------------------------------
+# Initialised here so every Django process (web, celery worker, celery beat)
+# gets it for free. The cv_worker has its own init in worker/main.py.
+# Zero overhead and no PII leaks when SENTRY_DSN is unset.
+SENTRY_DSN = env("SENTRY_DSN", "")
+SENTRY_ENVIRONMENT = env("SENTRY_ENVIRONMENT", "production" if not DEBUG else "development")
+SENTRY_TRACES_SAMPLE_RATE = float(env("SENTRY_TRACES_SAMPLE_RATE", "0.05") or 0.05)
+if SENTRY_DSN:
+    try:
+        import sentry_sdk  # type: ignore
+        from sentry_sdk.integrations.django import DjangoIntegration  # type: ignore
+        from sentry_sdk.integrations.celery import CeleryIntegration  # type: ignore
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            environment=SENTRY_ENVIRONMENT,
+            traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE,
+            send_default_pii=False,  # never leak request bodies / user emails
+            integrations=[DjangoIntegration(), CeleryIntegration()],
+        )
+    except Exception:  # pragma: no cover - never break startup on SDK error
+        import logging as _logging
+        _logging.getLogger(__name__).warning("Sentry SDK init failed", exc_info=True)
+
+# --- Prometheus metrics --------------------------------------------------
+# /api/health/metrics/ is gated by this flag. We don't multiprocess-aware
+# the registry because gunicorn workers share counts in the default registry,
+# which is fine for our “fleet overview” gauges.
+PROMETHEUS_METRICS_ENABLED = env_bool("PROMETHEUS_METRICS_ENABLED", True)

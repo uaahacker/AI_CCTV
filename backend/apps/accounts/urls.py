@@ -6,6 +6,12 @@ from .mfa_views import (
     MFAEnrollView,
     MFAStatusView,
 )
+from .password_reset import (
+    EmailVerifyConfirmView,
+    EmailVerifyRequestView,
+    PasswordResetConfirmView,
+    PasswordResetRequestView,
+)
 from .views import (
     LogoutView,
     MeView,
@@ -27,4 +33,14 @@ urlpatterns = [
     path("mfa/status/", MFAStatusView.as_view(), name="mfa-status"),
     path("mfa/disable/", MFADisableView.as_view(), name="mfa-disable"),
     path("mfa/verify/", MFAVerifyView.as_view(), name="mfa-verify"),
+    # Password reset
+    path("password/reset/request/", PasswordResetRequestView.as_view(),
+         name="auth-password-reset-request"),
+    path("password/reset/confirm/", PasswordResetConfirmView.as_view(),
+         name="auth-password-reset-confirm"),
+    # Email verification
+    path("email/verify/request/", EmailVerifyRequestView.as_view(),
+         name="auth-email-verify-request"),
+    path("email/verify/confirm/", EmailVerifyConfirmView.as_view(),
+         name="auth-email-verify-confirm"),
 ]

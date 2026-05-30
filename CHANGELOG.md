@@ -8,6 +8,46 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Recording library**: opt-in per camera (`Camera.recording_policy =
+  off|continuous|motion`). New `Recording` model + Celery beat task
+  `apps.cameras.recording_tasks.promote_recordings` concatenates HLS
+  segments into hourly MP4s using `ffmpeg -c copy` (zero re-encode).
+  React `/recordings` page lists clips with play + download; per-camera
+  detail gains a Recordings tab and policy dropdown.
+- **Signed media URLs**: HMAC-SHA256 short-lived links via
+  `POST /api/media/sign/` and `GET /api/media/file/`. Allowlist enforces
+  per-org tenancy on `hls/`, `recordings/`, `clips/` paths.
+- **Alert delivery audit + retries**: new `AlertDelivery` model. Per-channel
+  Celery tasks retry with exponential backoff (60s → 900s, 5 attempts);
+  `deliveries` field exposed on alert serializer.
+- **Password reset + email verification**: new
+  `PasswordResetToken` / `EmailVerificationToken` models (sha256 hash at
+  rest), 4 throttled endpoints, React `/forgot-password`,
+  `/reset-password/:token`, `/verify-email/:token` pages.
+- **GDPR right-to-erasure**: `Organization.deleted_at` soft-delete with
+  7-day grace + `apps.common.tasks.purge_deleted_organizations` daily
+  hard-purge of orgs and their media dirs.
+- **Per-org retention**: `Organization.retention_days` (default 90),
+  `AUDIT_RETENTION_DAYS`, `RECORDING_RETENTION_DAYS`.
+  `apps.common.tasks.purge_expired_data` nightly enforces the windows.
+- **Audit log UI + CSV export** at `/audit` with action/date filters.
+- **Zone editor**: SVG-based `<ZoneEditor>` React component supporting
+  polygon / line / parking-slot zones with normalised coordinates.
+- **Observability**:
+  - `GET /api/health/` (db + redis + celery probe)
+  - `GET /api/health/metrics/` Prometheus exposition
+  - Sentry SDK wired in backend (Django + Celery), cv_worker, and frontend
+- **CI**: `.github/workflows/ci.yml` runs backend `pytest` (with postgres
+  + redis services), frontend `vitest`, and `docker compose build`.
+- **Test scaffolding**: `pytest` + `pytest-django` + `factory-boy` on the
+  backend; `vitest` + `@testing-library/react` on the frontend with
+  initial smoke suites.
+
+### Changed
+- Sidebar gains Recordings / Audit log / Compliance entries.
+- Login page exposes Forgot password link.
+
+### Previously in this release line
 - **Live HLS preview**: new `streamer` compose service spawns one ffmpeg
   per active camera, writing rolling HLS chunks to `MEDIA_ROOT/hls/<id>/`.
   Frontend nginx serves them at `/media/hls/<id>/index.m3u8`; new

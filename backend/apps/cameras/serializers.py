@@ -3,7 +3,7 @@ from rest_framework import serializers
 from apps.common.security import mask_rtsp_url, validate_rtsp_url
 from apps.organizations.models import Organization
 
-from .models import Camera, CameraHealthCheck, Zone
+from .models import Camera, CameraHealthCheck, Recording, Zone
 
 
 class CameraSerializer(serializers.ModelSerializer):
@@ -24,6 +24,7 @@ class CameraSerializer(serializers.ModelSerializer):
             "status",
             "last_seen_at",
             "last_error",
+            "recording_policy",
             "created_at",
             "updated_at",
         )
@@ -95,3 +96,25 @@ class ZoneSerializer(serializers.ModelSerializer):
         instance.clean()
         return attrs
 
+
+class RecordingSerializer(serializers.ModelSerializer):
+    """Read-only representation. Downloads go through a signed media URL."""
+
+    download_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Recording
+        fields = (
+            "id", "camera", "kind", "started_at", "ended_at",
+            "duration_s", "size_bytes", "file_path", "download_url",
+            "created_at",
+        )
+        read_only_fields = fields
+
+    def get_download_url(self, obj):
+        from apps.common.signing import sign_media_path
+
+        if not obj.file_path:
+            return None
+        token, expires = sign_media_path(obj.file_path, ttl_seconds=3600)
+        return f"/api/media/file/?path={obj.file_path}&token={token}&expires={expires}"

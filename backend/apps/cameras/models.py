@@ -14,6 +14,11 @@ class Camera(TimeStampedModel):
         OFFLINE = "offline", "Offline"
         ERROR = "error", "Error"
 
+    class RecordingPolicy(models.TextChoices):
+        OFF = "off", "No recording"
+        CONTINUOUS = "continuous", "Continuous (rolling)"
+        MOTION = "motion", "Motion-triggered"
+
     organization = models.ForeignKey(
         Organization, on_delete=models.CASCADE, related_name="cameras"
     )
@@ -25,6 +30,17 @@ class Camera(TimeStampedModel):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.UNKNOWN)
     last_seen_at = models.DateTimeField(null=True, blank=True)
     last_error = models.TextField(blank=True)
+
+    # Recording library — promoted from HLS segments by the streamer.
+    recording_policy = models.CharField(
+        max_length=16,
+        choices=RecordingPolicy.choices,
+        default=RecordingPolicy.OFF,
+        help_text=(
+            "Whether to keep on-disk MP4 recordings (subject to the "
+            "organisation's RECORDING_RETENTION_DAYS)."
+        ),
+    )
 
     class Meta:
         ordering = ("-created_at",)
@@ -136,4 +152,43 @@ class Zone(TimeStampedModel):
             raise ValidationError("A LINE zone requires exactly two points.")
         if self.kind in {self.Kind.POLYGON, self.Kind.PARKING_SLOT} and len(geom) < 3:
             raise ValidationError("A polygon/parking_slot needs at least 3 points.")
+
+
+class Recording(TimeStampedModel):
+    """A finished MP4 segment promoted from the HLS playlist.
+
+    The streamer rotates HLS segments every ~2 s. A periodic Celery task
+    (``cameras.promote_recordings``) concatenates the segments older than
+    one rotation window into a single hourly MP4 under
+    ``MEDIA_ROOT/recordings/<camera_id>/<YYYY>/<MM>/<DD>/<HH>.mp4``.
+
+    Files are deleted by ``common.purge_expired_data`` once older than
+    ``settings.RECORDING_RETENTION_DAYS``.
+    """
+
+    class Kind(models.TextChoices):
+        CONTINUOUS = "continuous", "Continuous"
+        MOTION = "motion", "Motion"
+        EVIDENCE = "evidence", "Evidence clip"
+
+    camera = models.ForeignKey(
+        Camera, on_delete=models.CASCADE, related_name="recordings"
+    )
+    kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.CONTINUOUS)
+    started_at = models.DateTimeField(db_index=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    duration_s = models.PositiveIntegerField(default=0)
+    size_bytes = models.PositiveBigIntegerField(default=0)
+    # Relative to MEDIA_ROOT. Resolved by the signed-media view.
+    file_path = models.CharField(max_length=500)
+
+    class Meta:
+        ordering = ("-started_at",)
+        indexes = [
+            models.Index(fields=["camera", "-started_at"]),
+            models.Index(fields=["kind", "-started_at"]),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.camera_id} {self.kind} @ {self.started_at:%Y-%m-%d %H:%M}"
 

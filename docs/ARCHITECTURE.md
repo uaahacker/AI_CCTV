@@ -153,3 +153,42 @@ For a deployment with 50 cameras sampling every 5 seconds:
 - New AI provider → subclass `BaseAIProvider` (see [../AI_PROVIDERS.md](../AI_PROVIDERS.md)).
 - New rule predicate → add a value to `AlertRule.RuleType` and a branch in
   `evaluate_event` or a dedicated task.
+
+
+## Cross-cutting flows added in enterprise hardening
+
+### Signed media URL (HLS chunks, recordings, clips)
+
+1. Client calls `POST /api/media/sign/` with a relative path.
+2. Backend (`apps.common.views.MediaSignURLView`) verifies the path is
+   inside the user's organisation's namespace
+   (`hls/<cam>/`, `recordings/<cam>/`, `clips/<cam>/`).
+3. Backend returns `{path, token, expires, url}` where token is
+   `HMAC-SHA256(MEDIA_SIGNING_KEY, "path|expires")`.
+4. Browser fetches `GET /api/media/file/?path=&token=&expires=`.
+5. `MediaFileView` re-verifies HMAC + expiry, joins to MEDIA_ROOT with
+   path-traversal protection, and streams the file via `FileResponse`.
+
+This lets nginx terminate TLS without baking the signing secret into the
+edge config; all auth + tenancy lives in Django.
+
+### Recording promotion
+
+`apps.cameras.recording_tasks.promote_recordings` (Celery beat, every
+15 min by default) concatenates HLS segments of the previous complete
+hour into one MP4 using `ffmpeg -c copy`. See RECORDING.md.
+
+### Retention purge
+
+`apps.common.tasks.purge_expired_data` (03:00 daily) trims per-org
+`Alert`, `AlertDelivery`, `DetectionEvent`, `HeatmapBucket`,
+`AuditLog` and `Recording` (incl. on-disk files).
+`apps.common.tasks.purge_deleted_organizations` (03:30 daily)
+hard-deletes orgs whose `deleted_at` is older than the 7-day grace
+window and wipes their media directories.
+
+### Observability
+
+- Health: `GET /api/health/`
+- Metrics: `GET /api/health/metrics/` (Prometheus exposition)
+- Errors: Sentry SDK (backend, cv_worker, frontend)

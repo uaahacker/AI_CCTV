@@ -238,6 +238,22 @@ CHANNELS: dict[str, Callable[[Any, Any, dict], tuple[bool, str]]] = {
 }
 
 
+def send_to_channel(alert, rule, channel: str) -> tuple[bool, str]:
+    """Send `alert` to a single channel, returning (ok, detail).
+
+    Used by the retry-aware Celery task. Never raises \u2014 unknown channel
+    and adapter exceptions are returned as ``(False, detail)``.
+    """
+    adapter = CHANNELS.get(channel)
+    if adapter is None:
+        return False, "unknown channel"
+    cfg = (rule.channel_config or {}).get(channel, {}) if rule.channel_config else {}
+    try:
+        return adapter(alert, rule, cfg)
+    except Exception as exc:  # noqa: BLE001
+        return False, f"{exc.__class__.__name__}: {exc}"
+
+
 def dispatch(alert, rule) -> dict[str, tuple[bool, str]]:
     """Fan out alert to every enabled channel on the rule.
 

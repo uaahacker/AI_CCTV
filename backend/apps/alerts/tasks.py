@@ -21,8 +21,8 @@ from django.utils import timezone
 from apps.analytics.models import DetectionEvent
 from apps.cameras.models import Camera
 
-from .models import Alert, AlertRule
-from .notifications import dispatch
+from .models import Alert, AlertDelivery, AlertRule
+from .notifications import dispatch, send_to_channel
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +124,11 @@ def _create_alert(*, rule: AlertRule, camera, organization, title: str, message:
 
 @shared_task
 def deliver_alert(alert_id: str) -> dict:
-    """Fan out one Alert to every configured channel on its rule."""
+    """Fan out one Alert: create an ``AlertDelivery`` per channel and queue
+    per-channel send tasks. Each per-channel task retries with exponential
+    backoff (see ``_deliver_one_channel``) and updates its row independently.
+    Returns the initial channel list for observability.
+    """
     try:
         alert = Alert.objects.select_related("alert_rule", "camera", "organization").get(id=alert_id)
     except Alert.DoesNotExist:
@@ -132,10 +136,85 @@ def deliver_alert(alert_id: str) -> dict:
     rule = alert.alert_rule
     if not rule:
         return {}
-    results = dispatch(alert, rule)
-    log = {ch: {"ok": ok, "detail": detail} for ch, (ok, detail) in results.items()}
-    Alert.objects.filter(id=alert.id).update(delivery_log=log)
-    return log
+
+    channels = list(rule.channels or [])
+    if rule.notification_email and "email" not in channels:
+        channels.append("email")
+
+    queued: list[str] = []
+    for ch in channels:
+        delivery = AlertDelivery.objects.create(
+            alert=alert,
+            channel=ch,
+            status=AlertDelivery.Status.PENDING,
+        )
+        try:
+            _deliver_one_channel.delay(str(delivery.id))
+        except Exception:  # noqa: BLE001 \u2014 broker hiccup, run inline as fallback
+            logger.warning("could not enqueue delivery %s, running inline", delivery.id)
+            _deliver_one_channel(str(delivery.id))
+        queued.append(ch)
+
+    # Keep legacy summary for old dashboards that still read delivery_log.
+    Alert.objects.filter(id=alert.id).update(
+        delivery_log={ch: {"queued": True} for ch in queued}
+    )
+    return {"queued": queued}
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=60,            # 60s, 120s, 240s, 480s, 960s
+    retry_backoff_max=900,
+    retry_jitter=True,
+    max_retries=5,
+)
+def _deliver_one_channel(self, delivery_id: str) -> dict:
+    """Send one ``AlertDelivery`` and update its status. Retries on failure.
+
+    The task is wrapped in ``autoretry_for=(Exception,)`` so transient
+    network/SMTP errors get exponential backoff for free. A row that
+    finally exhausts its retries is marked ``failed`` and surfaced in the
+    Alert detail UI for manual investigation.
+    """
+    try:
+        delivery = AlertDelivery.objects.select_related("alert__alert_rule").get(id=delivery_id)
+    except AlertDelivery.DoesNotExist:
+        return {}
+    alert = delivery.alert
+    rule = alert.alert_rule
+    if rule is None:
+        AlertDelivery.objects.filter(id=delivery.id).update(
+            status=AlertDelivery.Status.SKIPPED,
+            last_error="alert rule was removed",
+        )
+        return {"status": "skipped"}
+
+    delivery.attempts = (delivery.attempts or 0) + 1
+    delivery.save(update_fields=["attempts", "updated_at"])
+
+    ok, detail = send_to_channel(alert, rule, delivery.channel)
+    if ok:
+        AlertDelivery.objects.filter(id=delivery.id).update(
+            status=AlertDelivery.Status.SENT,
+            sent_at=timezone.now(),
+            response_excerpt=(detail or "")[:500],
+            last_error="",
+        )
+        logger.info("delivery %s OK channel=%s", delivery.id, delivery.channel)
+        return {"status": "sent"}
+
+    # Persist the failure detail before re-raising so the retry sees it too.
+    AlertDelivery.objects.filter(id=delivery.id).update(
+        status=AlertDelivery.Status.FAILED,
+        last_error=(detail or "")[:1000],
+    )
+    logger.warning("delivery %s FAIL channel=%s detail=%s",
+                   delivery.id, delivery.channel, detail)
+    # Raising triggers the autoretry. After max_retries we leave the row
+    # in the FAILED state above for human follow-up.
+    raise RuntimeError(detail or "delivery failed")
 
 
 @shared_task

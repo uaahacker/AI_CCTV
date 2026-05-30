@@ -9,8 +9,11 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Organization
-        fields = ("id", "name", "slug", "is_active", "role", "created_at")
-        read_only_fields = ("id", "slug", "is_active", "role", "created_at")
+        fields = (
+            "id", "name", "slug", "is_active", "role",
+            "retention_days", "deleted_at", "created_at",
+        )
+        read_only_fields = ("id", "slug", "is_active", "role", "deleted_at", "created_at")
 
     def get_role(self, obj):
         user = self.context["request"].user

@@ -18,14 +18,17 @@
 
 ## Highlights
 
-- 🎥 **CV pipeline** — OpenCV + pluggable detectors (Dummy / YOLOv8); per-camera worker threads.
+- 🎥 **Real CV pipeline** — OpenCV + pluggable detectors. Default ships YOLOv8n for **multi-class detection** (people, bicycles, cars, motorcycles, buses, trucks); a `dummy` detector keeps tests fast.
+- 🔭 **Auto-configured analytics** — every new camera gets an auto line-crossing zone so people/vehicle IN/OUT counts work out of the box; per-class breakdown surfaced in the live event feed.
 - 🛡 **Privacy-first** — every face is blurred before the detector sees the frame. No raw footage is persisted.
-- 🔔 **Smart triggers** — IF-THIS-THEN-THAT rule engine with time-window predicates and **5 notification channels**: Email, Slack, Discord, generic Webhook, SMS (Twilio).
+- 📼 **Recording library** — opt-in per camera (`off` / `continuous` / `motion`). HLS segments are auto-promoted to hourly MP4s, served via short-lived HMAC-signed URLs, and purged after the retention window.
+- 🔔 **Smart triggers** — IF-THIS-THEN-THEN rule engine with time-window predicates and **5 notification channels** (Email, Slack, Discord, Webhook, SMS via Twilio) with **per-channel retries and a full delivery audit trail**.
 - 🧠 **Optional LLM insights** — per-organisation provider (OpenRouter, OpenAI-compatible, Local Ollama, self-hosted). Disabling LLM never disables detection.
 - 📊 **Reports & dashboards** — daily/hourly trends, per-camera breakdown, AI-generated daily summary on demand.
-- 🔐 **Multi-tenant RBAC** — `owner` / `admin` / `operator` / `viewer` per organisation.
-- 🧾 **Compliance** — `DataProcessingConsent` records written consent, camera ownership, and data-processing terms with full provenance.
-- 📜 **Audit log** — every sensitive action recorded with user, IP, metadata.
+- 🔐 **Hardened auth** — JWT + MFA (TOTP), throttled login/refresh, **password reset + email verification** flows, RBAC (`owner` / `admin` / `operator` / `viewer`).
+- 🧾 **Compliance & GDPR** — `DataProcessingConsent` records, per-org `retention_days`, soft-delete with 7-day grace period, nightly purge job, full audit log + CSV export.
+- 📈 **Production observability** — `/api/health/` liveness + dependency probe, **Prometheus metrics** at `/api/health/metrics/`, optional **Sentry SDK** for backend, cv_worker and frontend.
+- ✅ **Continuous integration** — GitHub Actions runs backend `pytest`, frontend `vitest`, and `docker compose build` on every PR.
 - 🐳 **Docker-native** — one-command bring-up; optional production nginx profile; optional `local-ai` profile bundles Ollama bound to `127.0.0.1`.
 
 ## Tech stack
@@ -61,6 +64,8 @@ Full diagram: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | AI providers | [AI_PROVIDERS.md](AI_PROVIDERS.md) |
 | Security policy | [SECURITY.md](SECURITY.md) |
 | Deployment (EC2) | [DEPLOYMENT.md](DEPLOYMENT.md) |
+| Monitoring (Sentry / Prometheus / health) | [docs/MONITORING.md](docs/MONITORING.md) |
+| Recording library | [docs/RECORDING.md](docs/RECORDING.md) |
 | Contributing | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | Code of conduct | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) |
 | Changelog | [CHANGELOG.md](CHANGELOG.md) |

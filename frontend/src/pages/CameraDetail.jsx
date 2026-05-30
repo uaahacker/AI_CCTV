@@ -4,12 +4,16 @@ import { api } from '../lib/api.js';
 import { fmtDate, statusBadgeClass } from '../lib/format.js';
 import LiveFeed from '../components/LiveFeed.jsx';
 import CountersWidget from '../components/CountersWidget.jsx';
+import ZoneEditor from '../components/ZoneEditor.jsx';
+import Recordings from './Recordings.jsx';
 
 export default function CameraDetail() {
   const { id } = useParams();
   const [cam, setCam] = useState(null);
   const [events, setEvents] = useState([]);
   const [checks, setChecks] = useState([]);
+  const [tab, setTab] = useState('live');  // live | zones | recordings
+  const [savingPolicy, setSavingPolicy] = useState(false);
 
   const load = async () => {
     const [c, ev, hc] = await Promise.all([
@@ -22,6 +26,14 @@ export default function CameraDetail() {
     setChecks(hc.data.results || hc.data);
   };
   useEffect(() => { load(); }, [id]);
+
+  const updatePolicy = async (policy) => {
+    setSavingPolicy(true);
+    try {
+      const { data } = await api.patch(`/cameras/${id}/`, { recording_policy: policy });
+      setCam(data);
+    } finally { setSavingPolicy(false); }
+  };
 
   if (!cam) return <div className="text-slate-500">Loading…</div>;
 
@@ -37,11 +49,42 @@ export default function CameraDetail() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <LiveFeed cameraId={id} className="aspect-video w-full" />
+        <div className="lg:col-span-2 space-y-3">
+          <div className="flex gap-2 text-sm">
+            {[['live','Live'],['zones','Zones'],['recordings','Recordings']].map(([k,l]) => (
+              <button
+                key={k}
+                onClick={() => setTab(k)}
+                className={`px-3 py-1 rounded ${tab === k
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'}`}
+              >{l}</button>
+            ))}
+          </div>
+
+          {tab === 'live' && <LiveFeed cameraId={id} className="aspect-video w-full" />}
+          {tab === 'zones' && <ZoneEditor cameraId={id} />}
+          {tab === 'recordings' && <Recordings cameraId={id} />}
         </div>
-        <div>
+        <div className="space-y-4">
           <CountersWidget cameraId={id} />
+
+          <div className="card p-4 space-y-2">
+            <div className="text-xs text-slate-500">Recording policy</div>
+            <select
+              className="input w-full"
+              disabled={savingPolicy}
+              value={cam.recording_policy || 'off'}
+              onChange={(e) => updatePolicy(e.target.value)}
+            >
+              <option value="off">Off</option>
+              <option value="continuous">Continuous (rolling)</option>
+              <option value="motion">Motion-triggered</option>
+            </select>
+            <p className="text-xs text-slate-500">
+              Promoted hourly. Files purge after the org&apos;s recording retention window.
+            </p>
+          </div>
         </div>
       </div>
 

@@ -8,9 +8,14 @@ from rest_framework.views import APIView
 from apps.audit.utils import log_action
 from apps.common.permissions import IsOrgAdminOrReadOnly
 
-from .models import Camera, CameraHealthCheck, Zone
+from .models import Camera, CameraHealthCheck, Recording, Zone
 from .onvif_discovery import probe_subnet, ws_discovery
-from .serializers import CameraHealthCheckSerializer, CameraSerializer, ZoneSerializer
+from .serializers import (
+    CameraHealthCheckSerializer,
+    CameraSerializer,
+    RecordingSerializer,
+    ZoneSerializer,
+)
 from .tasks import check_camera_health
 
 
@@ -181,8 +186,30 @@ class CameraDiscoveryView(APIView):
         return Response({"candidates": list(candidates.values())})
 
 
+class RecordingViewSet(viewsets.ReadOnlyModelViewSet):
+    """List + retrieve only \u2014 recordings are created by the streamer process.
+
+    Downloads happen via the signed media URL exposed by
+    ``RecordingSerializer.download_url``.
+    """
+
+    serializer_class = RecordingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["camera", "kind"]
+
+    def get_queryset(self):
+        return (
+            Recording.objects
+            .filter(camera__organization__memberships__user=self.request.user)
+            .select_related("camera")
+            .distinct()
+        )
+
+
 router = DefaultRouter()
 router.register(r"health-checks", CameraHealthCheckViewSet, basename="camera-healthcheck")
 router.register(r"zones", ZoneViewSet, basename="camera-zone")
+router.register(r"recordings", RecordingViewSet, basename="camera-recording")
 router.register(r"", CameraViewSet, basename="camera")
 

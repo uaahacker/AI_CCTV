@@ -191,3 +191,39 @@ User ─┬─ Membership ──→ Organization ─┬─ Camera ──→ Dete
       │                               └─ AuditLog (n)
       └─ AuditLog (n)
 ```
+
+
+## New models (enterprise hardening)
+
+### apps.cameras.Recording
+
+Promoted hourly MP4 file produced by `apps.cameras.recording_tasks.promote_recordings`
+for cameras whose `recording_policy` is `continuous`.
+
+- `camera`        FK -> apps.cameras.Camera
+- `kind`          CharField  (continuous | motion | clip)
+- `started_at`    DateTimeField (UTC, top of hour)
+- `ended_at`      DateTimeField
+- `duration_s`    PositiveInteger
+- `size_bytes`    PositiveBigInteger
+- `file_path`     CharField(500), relative to MEDIA_ROOT
+
+Served via signed URLs through `/api/media/file/` (see ARCHITECTURE.md).
+Purged after `RECORDING_RETENTION_DAYS`.
+
+### apps.alerts.AlertDelivery
+
+One row per channel attempt for a given alert. See NOTIFICATIONS.md.
+
+### apps.accounts.PasswordResetToken / EmailVerificationToken
+
+Single-use tokens, `token_hash` stored as `sha256(token).hexdigest()`
+so a DB leak cannot impersonate the user. TTL: 1 hour (reset) / 2 days
+(verify).
+
+## New / changed fields
+
+- `Organization.retention_days`  PositiveInteger (default `DEFAULT_RETENTION_DAYS`)
+- `Organization.deleted_at`      DateTimeField (null, db_index) - soft-delete sentinel
+- `Camera.recording_policy`      CharField (off | continuous | motion)
+- `User.email_verified`          BooleanField (default False)

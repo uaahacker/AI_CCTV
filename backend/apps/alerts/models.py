@@ -165,3 +165,42 @@ class Alert(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"[{self.severity}] {self.title}"
+
+
+class AlertDelivery(TimeStampedModel):
+    """One delivery attempt of an Alert to one channel.
+
+    The legacy ``Alert.delivery_log`` JSON field is kept as a quick summary
+    for backwards-compatible dashboards, but this table is the authoritative
+    audit trail with full retry history (attempts, last error, latency).
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed"
+        SKIPPED = "skipped", "Skipped"
+
+    alert = models.ForeignKey(
+        Alert, on_delete=models.CASCADE, related_name="deliveries"
+    )
+    channel = models.CharField(max_length=20)
+    status = models.CharField(
+        max_length=12, choices=Status.choices, default=Status.PENDING
+    )
+    attempts = models.PositiveSmallIntegerField(default=0)
+    last_error = models.TextField(blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    # Truncated provider response (e.g. Slack 'ok', Twilio SID). Avoid storing
+    # large blobs \u2014 we don't need them once the audit row exists.
+    response_excerpt = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["alert", "channel"]),
+            models.Index(fields=["status"]),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.channel} -> {self.status} (alert={self.alert_id})"

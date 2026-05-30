@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Alert, AlertRule, VALID_CHANNELS
+from .models import Alert, AlertDelivery, AlertRule, VALID_CHANNELS
 
 
 class AlertRuleSerializer(serializers.ModelSerializer):
@@ -56,6 +56,8 @@ class AlertRuleSerializer(serializers.ModelSerializer):
 
 
 class AlertSerializer(serializers.ModelSerializer):
+    deliveries = serializers.SerializerMethodField()
+
     class Meta:
         model = Alert
         fields = (
@@ -72,10 +74,25 @@ class AlertSerializer(serializers.ModelSerializer):
             "clip_path",
             "clip_duration_s",
             "delivery_log",
+            "deliveries",
             "created_at",
             "updated_at",
         )
         read_only_fields = (
             "id", "created_at", "updated_at",
-            "ai_summary", "delivery_log",
+            "ai_summary", "delivery_log", "deliveries",
         )
+
+    def get_deliveries(self, obj):
+        return AlertDeliverySerializer(obj.deliveries.all(), many=True).data
+
+
+class AlertDeliverySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AlertDelivery
+        fields = (
+            "id", "channel", "status", "attempts",
+            "last_error", "sent_at", "response_excerpt",
+            "created_at", "updated_at",
+        )
+        read_only_fields = fields

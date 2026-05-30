@@ -118,3 +118,24 @@ POSTGRES_PASSWORD=$(python -c 'import secrets; print(secrets.token_urlsafe(32))'
 ```
 
 Then copy/paste those three lines into your real `.env`.
+
+
+## Enterprise hardening environment variables
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| SENTRY_DSN | (unset) | Backend + Celery error reporting (sentry-sdk). |
+| SENTRY_ENVIRONMENT | production | Sentry environment label. |
+| SENTRY_TRACES_SAMPLE_RATE | 0.0 | Sentry APM sample rate. |
+| MEDIA_SIGNING_KEY | (SECRET_KEY) | HMAC key for signed media URLs. Override in prod. |
+| MEDIA_URL_DEFAULT_TTL_SECONDS | 3600 | Signed-URL lifetime. |
+| PUBLIC_SITE_URL | http://localhost:5173 | Base URL injected into password-reset / verify emails. |
+| DEFAULT_RETENTION_DAYS | 90 | Default org retention window for events / alerts. |
+| AUDIT_RETENTION_DAYS | 365 | Longer window for audit log. |
+| RECORDING_RETENTION_DAYS | 7 | MP4 retention. 0 disables the promote task. |
+| RECORDING_PROMOTE_INTERVAL_MINUTES | 15 | Celery beat cadence for `promote_recordings`. |
+| PROMETHEUS_METRICS_ENABLED | True | Toggle `/api/health/metrics/`. |
+| EMAIL_BACKEND | django.core.mail.backends.console.EmailBackend | Override with `django.core.mail.backends.smtp.EmailBackend` in prod. |
+| EMAIL_HOST / EMAIL_PORT / EMAIL_HOST_USER / EMAIL_HOST_PASSWORD / EMAIL_USE_TLS | (unset) | SMTP credentials. |
+| DEFAULT_FROM_EMAIL | no-reply@cctv.local | Sender for transactional + alert emails. |
+| VITE_SENTRY_DSN | (unset) | Frontend Sentry DSN (set at build time). |

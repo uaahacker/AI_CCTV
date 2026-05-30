@@ -18,6 +18,8 @@ api_v1_patterns = [
     path("audit/", include("apps.audit.urls")),
     path("ai/", include("apps.ai.urls")),
     path("compliance/", include("apps.compliance.urls")),
+    # Health, metrics, signed media URLs.
+    path("", include("apps.common.urls")),
     # OpenAPI 3 schema + interactive docs
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

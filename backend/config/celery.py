@@ -26,6 +26,20 @@ app.conf.beat_schedule = {
         # 07:00 server-local — change per deployment if needed.
         "schedule": crontab(hour=7, minute=0),
     },
+    # GDPR / data-retention housekeeping — runs nightly at 03:00.
+    "common.purge-expired-data": {
+        "task": "common.purge_expired_data",
+        "schedule": crontab(hour=3, minute=0),
+    },
+    "common.purge-deleted-organizations": {
+        "task": "common.purge_deleted_organizations",
+        "schedule": crontab(hour=3, minute=30),
+    },
+    # Recording library \u2014 promote HLS segments into MP4 every 15 minutes.
+    "cameras.promote-recordings": {
+        "task": "apps.cameras.recording_tasks.promote_recordings",
+        "schedule": crontab(minute="*/15"),
+    },
 }
 
 

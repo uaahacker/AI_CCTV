@@ -3,12 +3,18 @@ import Layout from './components/Layout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
+import VerifyEmail from './pages/VerifyEmail.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Cameras from './pages/Cameras.jsx';
 import CameraDetail from './pages/CameraDetail.jsx';
 import Alerts from './pages/Alerts.jsx';
 import AlertRules from './pages/AlertRules.jsx';
 import Reports from './pages/Reports.jsx';
+import Recordings from './pages/Recordings.jsx';
+import AuditLog from './pages/AuditLog.jsx';
+import Compliance from './pages/Compliance.jsx';
 import Settings from './pages/Settings.jsx';
 import AISettings from './pages/AISettings.jsx';
 
@@ -17,6 +23,9 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
+      <Route path="/verify-email/:token" element={<VerifyEmail />} />
 
       <Route
         element={
@@ -32,6 +41,9 @@ export default function App() {
         <Route path="/alerts" element={<Alerts />} />
         <Route path="/alerts/rules" element={<AlertRules />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/recordings" element={<Recordings />} />
+        <Route path="/audit" element={<AuditLog />} />
+        <Route path="/compliance" element={<Compliance />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/ai" element={<AISettings />} />
       </Route>

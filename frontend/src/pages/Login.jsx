@@ -46,6 +46,8 @@ export default function Login() {
         </form>
         <p className="mt-6 text-sm text-slate-500 text-center">
           No account? <Link className="text-brand-600 hover:underline" to="/register">Create one</Link>
+          <span className="mx-2 text-slate-400">·</span>
+          <Link className="text-brand-600 hover:underline" to="/forgot-password">Forgot password?</Link>
         </p>
       </div>
     </div>

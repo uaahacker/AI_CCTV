@@ -148,3 +148,37 @@ The Celery beat task `apps.alerts.tasks.generate_daily_reports` runs at
 in whatever channels the org's _first active_ rule uses — typically
 the same Slack channel as live alerts. Override by adding an explicit
 "daily-report" rule for finer control.
+
+
+
+## Delivery audit + retries
+
+Every enqueued alert generates one AlertDelivery row per channel attempt:
+
+```
+apps.alerts.AlertDelivery
+  - alert       FK -> Alert (related_name=deliveries)
+  - channel     CharField   (email | slack | discord | webhook | sms)
+  - status      enum        (pending | sent | failed)
+  - attempts    PositiveSmallInteger
+  - last_error  TextField   (truncated provider response on failure)
+  - sent_at     DateTimeField
+```
+
+Dispatching is split:
+
+1. `deliver_alert(alert_id)` resolves the rule, builds the channel list,
+   creates one pending `AlertDelivery` per channel, then enqueues
+   `_deliver_one_channel(delivery_id)` for each.
+2. `_deliver_one_channel` runs as `@shared_task(bind=True,
+   autoretry_for=(Exception,), retry_backoff=60, retry_backoff_max=900,
+   retry_jitter=True, max_retries=5)`. On success it sets `status=sent`
+   and `sent_at`. On failure it stores `last_error`, increments
+   `attempts`, and raises so Celery retries with exponential backoff
+   (60s -> 120s -> 240s -> 480s -> 900s, capped).
+3. The API exposes the delivery trail via the `deliveries` field on the
+   alert serializer; the metric `aicctv_deliveries_failed_24h` is
+   surfaced on `/api/health/metrics/`.
+
+Operators can re-trigger a failed delivery manually by re-enqueuing the
+task with the delivery id.

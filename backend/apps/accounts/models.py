@@ -34,6 +34,10 @@ class User(AbstractUser):
     username = None
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=150, blank=True)
+    # Flipped to True once the email-verification flow completes. Enforcement
+    # is soft by default \u2014 the frontend prompts the user to verify but does
+    # not block API access.
+    email_verified = models.BooleanField(default=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS: list[str] = []
@@ -42,6 +46,47 @@ class User(AbstractUser):
 
     def __str__(self) -> str:
         return self.email
+
+
+class _BaseToken(models.Model):
+    """Shared schema for one-shot, time-boxed tokens.
+
+    The plaintext token is only ever returned in the response that creates
+    the row; we store a SHA-256 hash so a DB leak doesn't expose live
+    reset links.
+    """
+
+    token_hash = models.CharField(max_length=64, db_index=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+    requested_ip = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
+
+    @property
+    def is_active(self) -> bool:
+        from django.utils import timezone as _tz
+        return self.used_at is None and self.expires_at > _tz.now()
+
+
+class PasswordResetToken(_BaseToken):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="password_reset_tokens"
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+
+
+class EmailVerificationToken(_BaseToken):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="email_verification_tokens"
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
 
 
 class MFADevice(models.Model):

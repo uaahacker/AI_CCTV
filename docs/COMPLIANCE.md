@@ -138,3 +138,39 @@ because the right policy varies by deployer.
 - [ ] DPIA on file for the deployer.
 - [ ] Retention job scheduled (see [PRIVACY.md](PRIVACY.md) §5).
 - [ ] Incident-response runbook references [SECURITY.md](../SECURITY.md) §12.
+
+## 10. Right to erasure (GDPR Art. 17) — implementation
+
+Per-org soft delete:
+
+1. An **owner** calls `DELETE /api/organizations/<id>/`. The API marks
+   `deleted_at = now()` and `is_active = False`, and writes an audit log.
+2. Read APIs immediately stop returning the organisation (default
+   manager filters `deleted_at__isnull=True`).
+3. During a **7-day grace window** the owner can call
+   `POST /api/organizations/<id>/cancel_deletion/` to restore.
+4. After the grace window, the nightly task
+   `apps.common.purge_deleted_organizations` hard-deletes the
+   organisation cascade (cameras, alerts, events, audit, consents) and
+   wipes the on-disk `hls/`, `recordings/` and `clips/` directories.
+
+Per-org retention:
+
+- `Organization.retention_days` (default `DEFAULT_RETENTION_DAYS=90`)
+  bounds how long detection events, alerts, heatmap buckets, and
+  recordings are kept.
+- `AUDIT_RETENTION_DAYS` (default 365) covers the audit log separately
+  because regulators routinely require longer audit trails than analytics.
+- `RECORDING_RETENTION_DAYS` (default 7) bounds promoted MP4 files
+  irrespective of the org-level setting, because raw footage is the
+  highest-risk artefact.
+- The nightly `apps.common.purge_expired_data` task at 03:00 enforces all
+  three windows transactionally.
+
+Subject access requests:
+
+- The audit log UI (`/audit`) supports filtering + CSV export, which is
+  the canonical evidence trail.
+- DSAR-style content searches across detection events use the standard
+  filtered list endpoints; the underlying schema is intentionally
+  flat to allow operators to extract data without bespoke tooling.

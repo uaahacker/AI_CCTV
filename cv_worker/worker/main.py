@@ -27,6 +27,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger("cv_worker")
 
+# --- Sentry (optional) --------------------------------------------------
+# Pulled in from env directly; the cv_worker is intentionally a thin
+# process that doesn't import Django settings. Zero overhead when unset.
+import os as _os
+_sentry_dsn = _os.environ.get("SENTRY_DSN", "").strip()
+if _sentry_dsn:
+    try:
+        import sentry_sdk  # type: ignore
+
+        sentry_sdk.init(
+            dsn=_sentry_dsn,
+            environment=_os.environ.get("SENTRY_ENVIRONMENT", "production"),
+            traces_sample_rate=float(_os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.0") or 0.0),
+            send_default_pii=False,
+        )
+        logger.info("Sentry SDK enabled for cv_worker")
+    except Exception:  # pragma: no cover
+        logger.warning("Sentry init failed", exc_info=True)
+
 
 def main() -> int:
     from .privacy import log_privacy_state

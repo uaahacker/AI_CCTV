@@ -24,3 +24,6 @@ whitenoise==6.7.0
 # Pulls torch (CPU build, ~700MB). Set DETECTOR=dummy in env to skip.
 # 8.3.x is required for compatibility with torch >= 2.6 (weights_only=True).
 ultralytics==8.3.40
+
+# Optional observability \u2014 active only when SENTRY_DSN is set.
+sentry-sdk==2.11.0
