@@ -10,5 +10,15 @@ celery==5.4.0
 redis==5.0.4
 cryptography==42.0.7
 
+# Django apps the worker boots via django.setup() — every entry in
+# INSTALLED_APPS must be importable, even though the worker never serves
+# HTTP requests.
+djangorestframework==3.15.1
+djangorestframework-simplejwt==5.3.1
+django-cors-headers==4.3.1
+django-filter==24.2
+drf-spectacular==0.27.2
+whitenoise==6.7.0
+
 # Optional — install only when DETECTOR=yolo
 # ultralytics==8.2.0
