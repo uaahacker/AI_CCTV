@@ -176,7 +176,7 @@ class _CameraState:
     """Encapsulates the per-camera state objects that live for the lifetime
     of the worker thread."""
 
-    __slots__ = ("tracker", "analytics", "parking", "heatmap", "clipbuf", "ticks_since_flush")
+    __slots__ = ("tracker", "analytics", "parking", "heatmap", "clipbuf", "ticks_since_flush", "ticks_waiting_hls")
 
     def __init__(self, camera_id: str) -> None:
         self.tracker = CentroidTracker()
@@ -189,6 +189,7 @@ class _CameraState:
             fps=fps, seconds=cfg.EVIDENCE_CLIP_SECONDS, output_root=media_root,
         )
         self.ticks_since_flush = 0
+        self.ticks_waiting_hls = 0
 
 
 def process_one(camera: Camera, detector: BaseDetector, state: _CameraState | None = None) -> None:
