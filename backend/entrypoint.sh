@@ -34,7 +34,11 @@ fi
 
 if [[ "$ROLE" == "web" ]]; then
     echo "[entrypoint] generating any missing app migrations…"
-    python manage.py makemigrations --noinput
+    # Explicitly name every first-party app: makemigrations with no args silently
+    # skips apps that lack a migrations/ package, which leaves the schema half-built
+    # and breaks admin.0001_initial (FK to swappable AUTH_USER_MODEL).
+    python manage.py makemigrations --noinput \
+        accounts organizations cameras analytics alerts billing audit ai compliance common || true
     echo "[entrypoint] running migrations…"
     python manage.py migrate --noinput
     echo "[entrypoint] collecting static files…"
