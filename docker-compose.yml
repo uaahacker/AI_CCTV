@@ -131,12 +131,13 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      # Shared with the streamer + backend:
-      #   * read: HLS segments produced by the streamer sidecar so we don't
-      #     open a second upstream RTSP session (which many providers, e.g.
-      #     Wowza, reject with 403 on the second SETUP).
-      #   * write: evidence clips for triggered alerts (clips/<camera>/...).
-      - backend_media:/app/media
+      # Shared with the streamer + backend. Mounted at /backend/media because
+      # cv_worker imports the backend Django code from /backend, so Django's
+      # BASE_DIR (and therefore MEDIA_ROOT = BASE_DIR/media) is /backend/media.
+      # The streamer writes HLS segments here; cv_worker reads them so it
+      # doesn't open a second upstream RTSP session (which many providers
+      # reject with 403). cv_worker also writes evidence clips here.
+      - backend_media:/backend/media
 
   frontend:
     build:
