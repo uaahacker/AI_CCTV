@@ -351,7 +351,7 @@ wait_for_backend() {
 run_migrations_and_superuser() {
   cd "$INSTALL_DIR"
   say "Generating app migrations…"
-  docker compose exec -T backend python manage.py makemigrations --noinput accounts organizations cameras analytics alerts billing audit ai compliance common
+  docker compose exec -T backend python manage.py makemigrations --noinput accounts organizations cameras analytics alerts billing audit ai compliance
   say "Applying database migrations…"
   docker compose exec -T backend python manage.py migrate --noinput
   say "Creating / updating admin user ${ADMIN_EMAIL}…"

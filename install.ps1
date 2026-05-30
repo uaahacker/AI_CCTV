@@ -231,7 +231,7 @@ function Apply-Migrations-And-Admin {
     Push-Location $InstallDir
     try {
         Say 'Generating app migrations…'
-        docker compose exec -T backend python manage.py makemigrations --noinput accounts organizations cameras analytics alerts billing audit ai compliance common
+        docker compose exec -T backend python manage.py makemigrations --noinput accounts organizations cameras analytics alerts billing audit ai compliance
         Say 'Applying database migrations…'
         docker compose exec -T backend python manage.py migrate --noinput
         Say "Creating / updating admin user $global:ADMIN_EMAIL…"

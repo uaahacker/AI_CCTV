@@ -38,7 +38,7 @@ if [[ "$ROLE" == "web" ]]; then
     # skips apps that lack a migrations/ package, which leaves the schema half-built
     # and breaks admin.0001_initial (FK to swappable AUTH_USER_MODEL).
     python manage.py makemigrations --noinput \
-        accounts organizations cameras analytics alerts billing audit ai compliance common || true
+        accounts organizations cameras analytics alerts billing audit ai compliance
     echo "[entrypoint] running migrations…"
     python manage.py migrate --noinput
     echo "[entrypoint] collecting static files…"
