@@ -22,4 +22,5 @@ whitenoise==6.7.0
 
 # Real-detector default — person + vehicle detection via YOLOv8n.
 # Pulls torch (CPU build, ~700MB). Set DETECTOR=dummy in env to skip.
-ultralytics==8.2.0
+# 8.3.x is required for compatibility with torch >= 2.6 (weights_only=True).
+ultralytics==8.3.40
