@@ -33,6 +33,8 @@ PY
 fi
 
 if [[ "$ROLE" == "web" ]]; then
+    echo "[entrypoint] generating any missing app migrations…"
+    python manage.py makemigrations --noinput
     echo "[entrypoint] running migrations…"
     python manage.py migrate --noinput
     echo "[entrypoint] collecting static files…"
