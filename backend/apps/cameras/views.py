@@ -35,6 +35,12 @@ class CameraViewSet(viewsets.ModelViewSet):
             organization=cam.organization,
             metadata={"camera_id": str(cam.id), "name": cam.name},
         )
+        # Probe immediately so the dashboard doesn't show "offline" until the next
+        # celery-beat tick. Safe to enqueue: idempotent and cheap (one TCP connect).
+        try:
+            check_camera_health.delay(str(cam.id))
+        except Exception:  # noqa: BLE001 — broker hiccup must not break create
+            pass
 
     def perform_update(self, serializer):
         cam = serializer.save()
@@ -45,6 +51,11 @@ class CameraViewSet(viewsets.ModelViewSet):
             organization=cam.organization,
             metadata={"camera_id": str(cam.id)},
         )
+        # RTSP URL may have been corrected — re-probe right away.
+        try:
+            check_camera_health.delay(str(cam.id))
+        except Exception:  # noqa: BLE001
+            pass
 
     def perform_destroy(self, instance):
         org = instance.organization

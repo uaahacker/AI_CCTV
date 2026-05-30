@@ -41,7 +41,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--refresh",
             type=int,
-            default=int(os.environ.get("STREAMER_REFRESH_SECONDS", "30")),
+            default=int(os.environ.get("STREAMER_REFRESH_SECONDS", "5")),
             help="How often (seconds) to reconcile running ffmpegs vs the Camera table.",
         )
         parser.add_argument(
