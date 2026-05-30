@@ -32,7 +32,7 @@ jobs:
     env:
       DJANGO_SETTINGS_MODULE: config.settings
       SECRET_KEY: ci-not-secret
-      DEBUG: "False"
+      DEBUG: "True"
       ALLOWED_HOSTS: "*"
       DATABASE_URL: postgres://aicctv:aicctv@localhost:5432/aicctv_test
       CELERY_BROKER_URL: redis://localhost:6379/0
