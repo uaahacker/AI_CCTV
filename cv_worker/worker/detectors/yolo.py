@@ -61,6 +61,43 @@ class YOLOPeopleDetector(BaseDetector):
                 "or set DETECTOR=dummy."
             ) from exc
 
+        # PyTorch 2.6 flipped torch.load(weights_only=) to True by default.
+        # Ultralytics < 8.3 doesn't whitelist its own classes, so loading
+        # an official yolov8n.pt blows up with `Unsupported global`. We
+        # explicitly allow-list the ultralytics + torch.nn modules used in
+        # the official checkpoints. Safe because we control the URL the
+        # model is downloaded from (github.com/ultralytics/assets).
+        try:
+            import torch  # type: ignore
+            import torch.nn as nn  # type: ignore
+
+            extra_globals: list = [nn.modules.container.Sequential]
+            try:
+                from ultralytics.nn import tasks as _ul_tasks  # type: ignore
+                from ultralytics.nn import modules as _ul_modules  # type: ignore
+
+                # Whitelist the top-level model class + every nn module ultralytics
+                # ships, so any version's checkpoint deserialises cleanly.
+                for name in dir(_ul_tasks):
+                    obj = getattr(_ul_tasks, name)
+                    if isinstance(obj, type):
+                        extra_globals.append(obj)
+                for sub in ("conv", "block", "head", "transformer", "utils"):
+                    try:
+                        mod = getattr(_ul_modules, sub)
+                    except AttributeError:
+                        continue
+                    for name in dir(mod):
+                        obj = getattr(mod, name)
+                        if isinstance(obj, type):
+                            extra_globals.append(obj)
+            except Exception:  # noqa: BLE001
+                pass
+            if hasattr(torch.serialization, "add_safe_globals"):
+                torch.serialization.add_safe_globals(extra_globals)
+        except Exception:  # noqa: BLE001
+            pass
+
         self.model_path = model_path or os.environ.get("YOLO_MODEL", "yolov8n.pt")
         self.conf = conf if conf is not None else float(os.environ.get("YOLO_CONF", "0.35"))
         logger.info("Loading YOLO weights: %s (conf>=%.2f)", self.model_path, self.conf)
