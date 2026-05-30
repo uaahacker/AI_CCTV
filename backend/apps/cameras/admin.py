@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Camera, CameraHealthCheck
+from .models import Camera, CameraHealthCheck, Zone
 
 
 @admin.register(Camera)
@@ -16,3 +16,10 @@ class CameraHealthCheckAdmin(admin.ModelAdmin):
     list_display = ("camera", "status", "latency_ms", "checked_at")
     list_filter = ("status",)
     search_fields = ("camera__name",)
+
+
+@admin.register(Zone)
+class ZoneAdmin(admin.ModelAdmin):
+    list_display = ("name", "camera", "kind", "direction", "is_active", "updated_at")
+    list_filter = ("kind", "is_active")
+    search_fields = ("name", "camera__name")

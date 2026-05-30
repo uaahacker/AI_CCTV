@@ -3,12 +3,14 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
+from rest_framework.views import APIView
 
 from apps.audit.utils import log_action
 from apps.common.permissions import IsOrgAdminOrReadOnly
 
-from .models import Camera, CameraHealthCheck
-from .serializers import CameraHealthCheckSerializer, CameraSerializer
+from .models import Camera, CameraHealthCheck, Zone
+from .onvif_discovery import probe_subnet, ws_discovery
+from .serializers import CameraHealthCheckSerializer, CameraSerializer, ZoneSerializer
 from .tasks import check_camera_health
 
 
@@ -78,6 +80,80 @@ class CameraHealthCheckViewSet(viewsets.ReadOnlyModelViewSet):
         ).distinct()
 
 
+class ZoneViewSet(viewsets.ModelViewSet):
+    """CRUD for camera Zones (polygon / line / parking_slot).
+
+    Tenant scoping: a user can only see zones whose camera belongs to one of
+    their organizations.
+    """
+
+    serializer_class = ZoneSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOrgAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["camera", "kind", "is_active"]
+
+    def get_queryset(self):
+        return Zone.objects.filter(
+            camera__organization__memberships__user=self.request.user
+        ).select_related("camera").distinct()
+
+    def perform_create(self, serializer):
+        zone = serializer.save()
+        log_action(
+            user=self.request.user,
+            action="zone.create",
+            request=self.request,
+            organization=zone.camera.organization,
+            metadata={"zone_id": str(zone.id), "kind": zone.kind},
+        )
+
+
+class CameraDiscoveryView(APIView):
+    """``POST /api/cameras/discover/`` — find IP cameras on the local network.
+
+    Two methods, returned merged and de-duplicated by IP:
+
+    1. **WS-Discovery** (ONVIF) — UDP multicast probe on 239.255.255.250:3702.
+       Pure stdlib, no extra dependency. Most cameras < 5 years old respond.
+    2. **TCP fallback** — Optional ``{ "subnet": "192.168.1.0/24" }`` body
+       triggers a fast TCP-connect scan on port 554 (RTSP). Works even when
+       the host's network blocks multicast.
+
+    Response::
+
+        { "candidates": [
+            { "ip": "192.168.1.42", "rtsp_hint": "rtsp://192.168.1.42:554/",
+              "manufacturer": "Hikvision", "model": "DS-2CD..." },
+            ...
+        ] }
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        timeout = float(request.data.get("timeout") or 3.0)
+        candidates: dict[str, dict] = {}
+
+        for cand in ws_discovery(timeout=timeout):
+            candidates[cand["ip"]] = cand
+
+        subnet = (request.data.get("subnet") or "").strip()
+        if subnet:
+            for cand in probe_subnet(subnet, timeout=timeout):
+                # Don't overwrite richer WS-Discovery data.
+                candidates.setdefault(cand["ip"], cand)
+
+        log_action(
+            user=request.user,
+            action="camera.discover",
+            request=request,
+            metadata={"found": len(candidates), "subnet": subnet},
+        )
+        return Response({"candidates": list(candidates.values())})
+
+
 router = DefaultRouter()
 router.register(r"health-checks", CameraHealthCheckViewSet, basename="camera-healthcheck")
+router.register(r"zones", ZoneViewSet, basename="camera-zone")
 router.register(r"", CameraViewSet, basename="camera")
+

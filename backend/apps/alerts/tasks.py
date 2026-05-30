@@ -91,6 +91,11 @@ def _infer_severity(rule: AlertRule, value: float) -> str:
 def _create_alert(*, rule: AlertRule, camera, organization, title: str, message: str,
                   value: float, metadata: dict) -> Alert:
     severity = _infer_severity(rule, value)
+    # Lift the evidence-clip path out of the metadata so it's directly
+    # queryable from the Alerts admin / API (clip_path is a top-level field).
+    clip_path = ""
+    if isinstance(metadata, dict):
+        clip_path = str(metadata.get("clip_path") or "")
     alert = Alert.objects.create(
         organization=organization,
         camera=camera,
@@ -99,6 +104,7 @@ def _create_alert(*, rule: AlertRule, camera, organization, title: str, message:
         message=message,
         severity=severity,
         metadata=metadata,
+        clip_path=clip_path,
     )
     # Multi-channel delivery off the request thread.
     try:

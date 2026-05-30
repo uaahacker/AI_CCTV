@@ -45,8 +45,22 @@ class YOLOPeopleDetector(BaseDetector):
         boxes = r0.boxes
         n = int(boxes.shape[0]) if boxes is not None else 0
         avg_conf = float(boxes.conf.mean().item()) if n else 0.0
+
+        # Normalise xyxy to [0,1] so downstream tracking is frame-size-agnostic.
+        h, w = frame.shape[:2]
+        bbox_list: list[dict] = []
+        if n and getattr(boxes, "xyxy", None) is not None:
+            xyxy = boxes.xyxy.cpu().numpy()
+            confs = boxes.conf.cpu().numpy()
+            for (x1, y1, x2, y2), c in zip(xyxy, confs):
+                bbox_list.append({
+                    "bbox": [float(x1) / w, float(y1) / h, float(x2) / w, float(y2) / h],
+                    "confidence": float(c),
+                    "label": "person",
+                })
+
         return DetectionResult(
             people_count=n,
             confidence=round(avg_conf, 3),
-            metadata={"detector": self.name, "model": self.model_path},
+            metadata={"detector": self.name, "model": self.model_path, "boxes": bbox_list},
         )

@@ -3,7 +3,7 @@ from rest_framework import serializers
 from apps.common.security import mask_rtsp_url, validate_rtsp_url
 from apps.organizations.models import Organization
 
-from .models import Camera, CameraHealthCheck
+from .models import Camera, CameraHealthCheck, Zone
 
 
 class CameraSerializer(serializers.ModelSerializer):
@@ -69,3 +69,29 @@ class CameraHealthCheckSerializer(serializers.ModelSerializer):
         model = CameraHealthCheck
         fields = ("id", "camera", "status", "latency_ms", "error_message", "checked_at")
         read_only_fields = fields
+
+
+class ZoneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Zone
+        fields = (
+            "id",
+            "camera",
+            "name",
+            "kind",
+            "geometry",
+            "direction",
+            "is_active",
+            "config",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")
+
+    def validate(self, attrs):
+        # Re-use the model's clean() rules so the API gets the same
+        # validation as the admin and ORM.
+        instance = Zone(**{**({"camera": self.instance.camera} if self.instance else {}), **attrs})
+        instance.clean()
+        return attrs
+

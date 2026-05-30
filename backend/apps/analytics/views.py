@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import Avg, Max, Sum
+from django.db.models import Avg, Count, Max, Sum
 from django.db.models.functions import TruncDate, TruncHour
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
 from rest_framework.views import APIView
 
-from .models import DetectionEvent
+from .models import DetectionEvent, HeatmapBucket, ParkingSlotState
 from .serializers import DetectionEventSerializer
 
 
@@ -113,4 +113,95 @@ class ReportsAISummaryView(APIView):
 extra_urls = [
     path("reports/", ReportsView.as_view(), name="reports"),
     path("reports/ai-summary/", ReportsAISummaryView.as_view(), name="reports-ai-summary"),
+]
+
+
+class HeatmapView(APIView):
+    """``GET /api/analytics/heatmap/?camera=<uuid>&hours=24``
+
+    Returns the aggregated occupancy heatmap for a single camera over the
+    requested rolling window. The grid is always 16×16 (matches
+    ``HeatmapBucket.GRID``); cells are normalised [0,1] for easy rendering.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        camera_id = request.query_params.get("camera")
+        if not camera_id:
+            return Response({"detail": "camera query param is required."}, status=400)
+        hours = max(1, min(int(request.query_params.get("hours") or 24), 24 * 30))
+        since = timezone.now() - timedelta(hours=hours)
+
+        qs = HeatmapBucket.objects.filter(
+            camera_id=camera_id,
+            camera__organization__memberships__user=request.user,
+            hour_bucket__gte=since,
+        ).values("grid_x", "grid_y").annotate(weight=Sum("weight"))
+
+        grid_size = HeatmapBucket.GRID
+        grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
+        total = 0
+        max_w = 0
+        for row in qs:
+            x, y, w = row["grid_x"], row["grid_y"], int(row["weight"] or 0)
+            if 0 <= x < grid_size and 0 <= y < grid_size:
+                grid[y][x] = w
+                total += w
+                if w > max_w:
+                    max_w = w
+
+        normalised = (
+            [[(c / max_w) if max_w else 0.0 for c in row] for row in grid]
+            if max_w
+            else grid
+        )
+        return Response(
+            {
+                "camera": camera_id,
+                "hours": hours,
+                "grid_size": grid_size,
+                "grid": normalised,
+                "raw_max": max_w,
+                "samples": total,
+            }
+        )
+
+
+class ParkingStatusView(APIView):
+    """``GET /api/analytics/parking/?camera=<uuid>`` — current parking slot map."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        qs = ParkingSlotState.objects.filter(
+            zone__camera__organization__memberships__user=request.user
+        ).select_related("zone", "zone__camera")
+        camera_id = request.query_params.get("camera")
+        if camera_id:
+            qs = qs.filter(zone__camera_id=camera_id)
+
+        slots = [
+            {
+                "zone_id": str(s.zone_id),
+                "zone_name": s.zone.name,
+                "camera_id": str(s.zone.camera_id),
+                "state": s.state,
+                "since": s.since,
+                "vehicle_track_id": s.vehicle_track_id,
+                "geometry": s.zone.geometry,
+            }
+            for s in qs
+        ]
+        summary = {"free": 0, "occupied": 0, "illegal": 0}
+        for s in slots:
+            summary[s["state"]] = summary.get(s["state"], 0) + 1
+        return Response({"slots": slots, "summary": summary})
+
+
+extra_urls = [
+    path("reports/", ReportsView.as_view(), name="reports"),
+    path("reports/ai-summary/", ReportsAISummaryView.as_view(), name="reports-ai-summary"),
+    path("heatmap/", HeatmapView.as_view(), name="heatmap"),
+    path("parking/", ParkingStatusView.as_view(), name="parking-status"),
 ]

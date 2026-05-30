@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     # 3rd-party
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
     "drf_spectacular",
@@ -152,6 +153,21 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": env("THROTTLE_ANON", "60/min"),
+        "user": env("THROTTLE_USER", "600/min"),
+        # Tight buckets on credential / token-issuing endpoints.
+        "auth_login": env("THROTTLE_AUTH_LOGIN", "10/min"),
+        "auth_register": env("THROTTLE_AUTH_REGISTER", "5/hour"),
+        "auth_token_refresh": env("THROTTLE_AUTH_REFRESH", "60/min"),
+        "auth_mfa_verify": env("THROTTLE_AUTH_MFA", "10/min"),
+        "stripe_webhook": env("THROTTLE_STRIPE_WEBHOOK", "120/min"),
+    },
 }
 
 SPECTACULAR_SETTINGS = {
@@ -166,8 +182,26 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": False,
+    # Rotated refresh tokens are blacklisted, and explicit logout puts the
+    # caller's refresh token on the blacklist too (apps.accounts.LogoutView).
+    "BLACKLIST_AFTER_ROTATION": True,
 }
+
+# --- MFA (TOTP, RFC 6238) ----------------------------------------------
+# 'soft' = require enrolment for staff/superuser only; everyone else may opt in.
+# 'required_for_all' = every user must enrol before logging in.
+MFA_ENFORCEMENT = env("MFA_ENFORCEMENT", "soft")
+MFA_ISSUER = env("MFA_ISSUER", "AI CCTV Analytics")
+# Lifetime of the pre-MFA challenge token returned by /auth/token/.
+MFA_CHALLENGE_LIFETIME_SECONDS = int(env("MFA_CHALLENGE_LIFETIME_SECONDS", "300") or 300)
+
+# --- Stripe (optional; disabled unless STRIPE_SECRET_KEY is set) -------
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_SUCCESS_URL = env("STRIPE_SUCCESS_URL", "")
+STRIPE_CANCEL_URL = env("STRIPE_CANCEL_URL", "")
+STRIPE_ENABLED = bool(STRIPE_SECRET_KEY)
 
 # --- CORS ---------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = env_list(

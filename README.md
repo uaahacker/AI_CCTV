@@ -224,12 +224,12 @@ Higher-level guide: [docs/API.md](docs/API.md).
 - [x] Time-window predicates on rules
 - [x] Privacy face-blur default + `DataProcessingConsent`
 - [x] Open-source release (MIT)
-- [ ] Object tracking (entry/exit, line-crossing, loitering, abandoned object)
-- [ ] Parking zones (slot occupancy, illegal parking, duration)
-- [ ] Heatmaps + queue-length detector
-- [ ] ONVIF auto-discovery
-- [ ] Evidence-clip writer (rolling ffmpeg buffer, ≤5 s)
-- [ ] Rate limiting on auth, JWT blacklist, MFA, Stripe billing
+- [x] Object tracking (entry/exit, line-crossing, loitering, abandoned object)
+- [x] Parking zones (slot occupancy, illegal parking, duration)
+- [x] Heatmaps + queue-length detector
+- [x] ONVIF auto-discovery
+- [x] Evidence-clip writer (rolling ffmpeg buffer, ≤5 s)
+- [x] Rate limiting on auth, JWT blacklist, MFA, Stripe billing
 
 ## Contributing
 

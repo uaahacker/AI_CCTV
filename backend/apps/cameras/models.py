@@ -61,3 +61,79 @@ class CameraHealthCheck(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.camera.name} @ {self.checked_at:%Y-%m-%d %H:%M} = {self.status}"
+
+
+class Zone(TimeStampedModel):
+    """A named geometry overlaid on a camera frame.
+
+    Coordinates are *normalised* to ``[0, 1]`` so the same zone keeps its
+    meaning when the stream's resolution changes. The pipeline scales them
+    to pixel space at runtime.
+
+    Kinds:
+    - ``polygon`` — closed region used for queue length, dwell-time,
+      loitering, intrusion, abandoned-object detection. ``geometry`` is a
+      list of ``[x, y]`` pairs (length >= 3).
+    - ``line`` — directional tripwire used for entry/exit and line-crossing.
+      ``geometry`` is exactly two ``[x, y]`` points. ``direction`` controls
+      which side counts as "in".
+    - ``parking_slot`` — single bay used by the parking analytics. Same
+      shape as a polygon; the parking detector treats it specially.
+    """
+
+    class Kind(models.TextChoices):
+        POLYGON = "polygon", "Polygon"
+        LINE = "line", "Line / tripwire"
+        PARKING_SLOT = "parking_slot", "Parking slot"
+
+    class Direction(models.TextChoices):
+        NONE = "none", "Bi-directional"
+        IN = "in", "Crossing IN counts"
+        OUT = "out", "Crossing OUT counts"
+        BOTH = "both", "Count both directions"
+
+    camera = models.ForeignKey(
+        Camera, on_delete=models.CASCADE, related_name="zones"
+    )
+    name = models.CharField(max_length=120)
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.POLYGON)
+    # Validated by Zone.clean(): polygon >= 3 points, line == 2 points.
+    geometry = models.JSONField(
+        help_text='Normalised coords [[x,y],...] with x,y in [0,1].'
+    )
+    direction = models.CharField(
+        max_length=10, choices=Direction.choices, default=Direction.NONE,
+        help_text="Only meaningful for LINE zones."
+    )
+    is_active = models.BooleanField(default=True)
+    # Free-form config: dwell_seconds, abandoned_seconds, max_occupancy, etc.
+    config = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ("camera", "name")
+        indexes = [
+            models.Index(fields=["camera", "is_active"]),
+            models.Index(fields=["kind"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.camera.name}::{self.name} ({self.kind})"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        geom = self.geometry
+        if not isinstance(geom, list) or not geom:
+            raise ValidationError("geometry must be a non-empty list of [x, y] pairs.")
+        for p in geom:
+            if (
+                not isinstance(p, (list, tuple))
+                or len(p) != 2
+                or not all(isinstance(c, (int, float)) and 0.0 <= c <= 1.0 for c in p)
+            ):
+                raise ValidationError("Each point must be [x, y] with 0 <= value <= 1.")
+        if self.kind == self.Kind.LINE and len(geom) != 2:
+            raise ValidationError("A LINE zone requires exactly two points.")
+        if self.kind in {self.Kind.POLYGON, self.Kind.PARKING_SLOT} and len(geom) < 3:
+            raise ValidationError("A polygon/parking_slot needs at least 3 points.")
+

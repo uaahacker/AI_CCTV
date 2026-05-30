@@ -18,6 +18,9 @@ class SubscriptionPlan(TimeStampedModel):
     max_cameras = models.PositiveIntegerField(default=10)
     features = models.JSONField(default=dict, blank=True)
     is_active = models.BooleanField(default=True)
+    # Stripe linkage — set this to a Price ID (price_xxx) created in your
+    # Stripe dashboard to expose the plan through the checkout endpoint.
+    stripe_price_id = models.CharField(max_length=120, blank=True)
 
     class Meta:
         ordering = ("price_per_camera_monthly",)

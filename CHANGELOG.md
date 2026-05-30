@@ -8,6 +8,40 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Object tracking & zone analytics**: lightweight centroid+IoU tracker
+  (`cv_worker/worker/tracking.py`) plus per-camera `Zone` (polygon, line,
+  parking slot) configuration. Emits new `DetectionEvent` types
+  `zone_entry`, `zone_exit`, `line_crossing`, `loitering`,
+  `abandoned_object`, `queue_length`.
+- **Parking analytics**: `Zone.kind=parking_slot` slots produce live
+  `ParkingSlotState` rows (FREE / OCCUPIED / ILLEGAL) and emit
+  `parking_occupied`, `parking_vacated`, `parking_illegal`,
+  `parking_duration` events. New endpoint `GET /api/analytics/parking/`.
+- **Heatmaps**: 16×16 grid `HeatmapBucket` writer in the worker plus
+  `GET /api/analytics/heatmap/?camera=&hours=` returning a normalised grid
+  for dashboard rendering.
+- **ONVIF auto-discovery**: stdlib-only WS-Discovery probe plus optional
+  TCP/554 subnet scan, exposed at `POST /api/cameras/discover/`.
+- **Evidence-clip writer**: in-memory `RollingClipBuffer` (≤
+  `EVIDENCE_CLIP_SECONDS`, default 5 s) flushed to
+  `MEDIA_ROOT/clips/<camera>/<event>.mp4` on alertable events. Clip path
+  is auto-attached to the generated `Alert`.
+- **Auth hardening**: DRF scoped throttles for login/register/refresh/MFA,
+  JWT refresh-token blacklist on logout (`POST /api/auth/logout/`), and
+  **TOTP MFA** (`/api/auth/mfa/enroll`, `confirm`, `status`, `disable`,
+  `verify`) with two-step login (`mfa_token` challenge).
+- **Stripe billing**: optional `apps.billing.stripe_adapter` (only loaded
+  when `STRIPE_SECRET_KEY` is set). New checkout / portal actions on the
+  subscription endpoint and signature-verified webhook at
+  `POST /api/billing/webhook/`.
+
+### Changed
+- `install.sh` / `install.ps1` now run `makemigrations` before `migrate`
+  so first-boot creates any pending app migrations automatically.
+
+## [Unreleased Previous]
+
+### Added
 - **One-line installer** for VPS / Docker hosts:
   `install.sh` (bash, Linux/macOS) and `install.ps1` (PowerShell, Windows).
   Detects/installs Docker, clones the repo, runs an interactive wizard for

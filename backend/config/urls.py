@@ -6,13 +6,11 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
 api_v1_patterns = [
+    # All auth (register, login, refresh, logout, MFA) lives in apps.accounts.urls.
     path("auth/", include("apps.accounts.urls")),
-    path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("organizations/", include("apps.organizations.urls")),
     path("cameras/", include("apps.cameras.urls")),
     path("analytics/", include("apps.analytics.urls")),

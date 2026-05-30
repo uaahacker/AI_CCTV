@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import User
+from .models import MFADevice, User
 
 
 @admin.register(User)
@@ -18,3 +18,11 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = (
         (None, {"classes": ("wide",), "fields": ("email", "password1", "password2")}),
     )
+
+
+@admin.register(MFADevice)
+class MFADeviceAdmin(admin.ModelAdmin):
+    list_display = ("user", "confirmed_at", "last_used_at", "created_at")
+    list_filter = ("confirmed_at",)
+    search_fields = ("user__email",)
+    readonly_fields = ("secret_encrypted", "recovery_codes", "created_at", "updated_at")

@@ -46,3 +46,10 @@ MAX_CAMERAS = _int("MAX_CAMERAS", 64)
 DUMMY_MAX_PEOPLE = _int("DUMMY_MAX_PEOPLE", 15)
 YOLO_MODEL = os.environ.get("YOLO_MODEL", "yolov8n.pt")
 YOLO_CONF = float(os.environ.get("YOLO_CONF", "0.35"))
+
+# --- Phase 5: tracking + evidence clips -------------------------------------
+ENABLE_TRACKING = os.environ.get("ENABLE_TRACKING", "1") != "0"
+EVIDENCE_CLIPS_ENABLED = os.environ.get("EVIDENCE_CLIPS_ENABLED", "1") != "0"
+EVIDENCE_CLIP_SECONDS = _int("EVIDENCE_CLIP_SECONDS", 5)
+HEATMAP_FLUSH_EVERY_TICKS = _int("HEATMAP_FLUSH_EVERY_TICKS", 12)
+

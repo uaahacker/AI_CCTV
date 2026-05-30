@@ -1,3 +1,7 @@
-from .views import router
+from django.urls import path
 
-urlpatterns = router.urls
+from .views import CameraDiscoveryView, router
+
+urlpatterns = router.urls + [
+    path("discover/", CameraDiscoveryView.as_view(), name="camera-discover"),
+]
