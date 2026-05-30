@@ -19,13 +19,13 @@ Three install paths, easiest first.
 ### Linux / macOS
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/UbaidUllah/AI_CCTV/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/uaahacker/AI_CCTV/main/install.sh | bash
 ```
 
 ### Windows (Docker Desktop must be running)
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/UbaidUllah/AI_CCTV/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/uaahacker/AI_CCTV/main/install.ps1 | iex
 ```
 
 ### What it does
@@ -69,7 +69,7 @@ export NONINTERACTIVE=1
 export PUBLIC_HOST=cctv.example.com
 export ADMIN_EMAIL=you@example.com
 export ADMIN_PASSWORD='whatever-you-want'   # optional — auto-generated if absent
-curl -fsSL https://raw.githubusercontent.com/UbaidUllah/AI_CCTV/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/uaahacker/AI_CCTV/main/install.sh | bash
 ```
 
 ### After install
@@ -91,7 +91,7 @@ Open `http://<your-host>` and log in with the admin credentials.
 If you prefer to drive each step:
 
 ```bash
-git clone https://github.com/UbaidUllah/AI_CCTV.git
+git clone https://github.com/uaahacker/AI_CCTV.git
 cd AI_CCTV
 cp .env.example .env
 

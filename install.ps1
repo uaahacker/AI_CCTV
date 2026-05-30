@@ -3,7 +3,7 @@
     AI CCTV Analytics — one-line installer for Windows hosts with Docker Desktop.
 
 .DESCRIPTION
-    iwr -useb https://raw.githubusercontent.com/UbaidUllah/AI_CCTV/main/install.ps1 | iex
+    iwr -useb https://raw.githubusercontent.com/uaahacker/AI_CCTV/main/install.ps1 | iex
 
     1. Verifies Docker Desktop is installed and running.
     2. Clones (or updates) the repo to $InstallDir (default $env:USERPROFILE\AI_CCTV).
@@ -26,7 +26,7 @@
 [CmdletBinding()]
 param(
     [string]$InstallDir = (Join-Path $env:USERPROFILE 'AI_CCTV'),
-    [string]$RepoUrl    = 'https://github.com/UbaidUllah/AI_CCTV.git',
+    [string]$RepoUrl    = 'https://github.com/uaahacker/AI_CCTV.git',
     [string]$Branch     = 'main',
     [switch]$Reconfigure,
     [switch]$NonInteractive

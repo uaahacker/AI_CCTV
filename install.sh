@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # AI CCTV Analytics — one-line installer
 #
-#   curl -fsSL https://raw.githubusercontent.com/UbaidUllah/AI_CCTV/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/uaahacker/AI_CCTV/main/install.sh | bash
 #
 # What it does:
 #   1. Checks/installs Docker + Docker Compose plugin (Debian/Ubuntu, RHEL/Fedora,
@@ -19,7 +19,7 @@
 #
 # Environment variables (skip the wizard, useful for CI / automation):
 #   INSTALL_DIR=/opt/ai-cctv
-#   REPO_URL=https://github.com/UbaidUllah/AI_CCTV.git
+#   REPO_URL=https://github.com/uaahacker/AI_CCTV.git
 #   REPO_BRANCH=main
 #   NONINTERACTIVE=1
 #   PUBLIC_HOST=cctv.example.com
@@ -34,7 +34,7 @@
 set -euo pipefail
 
 INSTALL_DIR="${INSTALL_DIR:-/opt/ai-cctv}"
-REPO_URL="${REPO_URL:-https://github.com/UbaidUllah/AI_CCTV.git}"
+REPO_URL="${REPO_URL:-https://github.com/uaahacker/AI_CCTV.git}"
 REPO_BRANCH="${REPO_BRANCH:-main}"
 NONINTERACTIVE="${NONINTERACTIVE:-0}"
 RECONFIGURE=0

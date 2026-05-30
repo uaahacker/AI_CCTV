@@ -87,13 +87,13 @@ secrets, asks for admin/AI/SMTP details, starts the stack, applies
 migrations, and creates your superuser:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/UbaidUllah/AI_CCTV/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/uaahacker/AI_CCTV/main/install.sh | bash
 ```
 
 Windows (Docker Desktop installed and running):
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/UbaidUllah/AI_CCTV/main/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/uaahacker/AI_CCTV/main/install.ps1 | iex
 ```
 
 When it finishes you'll see the public URL, admin email, and a generated
@@ -107,7 +107,7 @@ Prefer to drive it yourself? The installer is just a convenience wrapper
 around these steps:
 
 ```powershell
-git clone https://github.com/UbaidUllah/AI_CCTV.git
+git clone https://github.com/uaahacker/AI_CCTV.git
 cd AI_CCTV
 Copy-Item .env.example .env
 
