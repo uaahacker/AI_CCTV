@@ -37,7 +37,7 @@ jobs:
       DATABASE_URL: postgres://aicctv:aicctv@localhost:5432/aicctv_test
       CELERY_BROKER_URL: redis://localhost:6379/0
       REDIS_URL: redis://localhost:6379/0
-      FIELD_ENCRYPTION_KEY: 32-bytes-long-hardcoded-key-XYZ=
+      FIELD_ENCRYPTION_KEY: "UHJnJbDP6ZLRSbHgTxqv2FjO6J1x95jciO_MiqfWoh8="
       PUBLIC_SITE_URL: http://localhost:5173
 
     steps:
