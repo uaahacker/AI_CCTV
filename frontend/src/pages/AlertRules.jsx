@@ -179,10 +179,26 @@ export default function AlertRules() {
             <div>
               <label className="label">Rule type</label>
               <select className="input" value={form.rule_type} onChange={(e) => setField('rule_type', e.target.value)}>
-                <option value="people_count">People count</option>
-                <option value="crowd_threshold">Crowd</option>
-                <option value="intrusion">Intrusion</option>
-                <option value="camera_offline">Camera offline</option>
+                <optgroup label="Counting">
+                  <option value="people_count">People count</option>
+                  <option value="crowd_threshold">Crowd density</option>
+                  <option value="queue_length">Queue length</option>
+                  <option value="line_crossing">Line crossing (people / vehicles)</option>
+                </optgroup>
+                <optgroup label="Behaviour">
+                  <option value="dwell_time">Dwell time</option>
+                  <option value="loitering">Loitering</option>
+                  <option value="abandoned_object">Abandoned object</option>
+                  <option value="intrusion">Intrusion (after-hours)</option>
+                </optgroup>
+                <optgroup label="Parking">
+                  <option value="parking_occupied">Parking slot occupied</option>
+                  <option value="parking_illegal">Illegal parking</option>
+                  <option value="parking_duration">Parking duration exceeded</option>
+                </optgroup>
+                <optgroup label="System">
+                  <option value="camera_offline">Camera offline</option>
+                </optgroup>
               </select>
             </div>
             <div>
