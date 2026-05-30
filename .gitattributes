@@ -1,0 +1,28 @@
+# Default — let Git auto-detect text files.
+* text=auto eol=lf
+
+# Shell scripts must always be LF, even on Windows checkouts (Docker containers
+# run Linux and break on CRLF). This fixes "entrypoint.sh: not found" errors.
+*.sh           text eol=lf
+*.bash         text eol=lf
+Dockerfile*    text eol=lf
+*.dockerfile   text eol=lf
+
+# Windows-only files keep CRLF.
+*.bat          text eol=crlf
+*.cmd          text eol=crlf
+*.ps1          text eol=crlf
+
+# Binary — never normalise.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.webp   binary
+*.ico    binary
+*.pdf    binary
+*.zip    binary
+*.gz     binary
+*.tar    binary
+*.pt     binary
+*.onnx   binary

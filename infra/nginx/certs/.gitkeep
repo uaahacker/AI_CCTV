@@ -1,0 +1,2 @@
+# Drop fullchain.pem + privkey.pem here for the production nginx profile.
+# Real cert files are gitignored.
