@@ -39,6 +39,7 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       FIELD_ENCRYPTION_KEY: "UHJnJbDP6ZLRSbHgTxqv2FjO6J1x95jciO_MiqfWoh8="
       PUBLIC_SITE_URL: http://localhost:5173
+      CELERY_TASK_ALWAYS_EAGER: "True"
 
     steps:
       - uses: actions/checkout@v4
