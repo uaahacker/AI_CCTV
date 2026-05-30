@@ -1,0 +1,10 @@
+[AI CCTV] {{ alert.severity|upper }} — {{ alert.title }}
+
+{{ alert.message }}
+
+Camera : {{ camera_name|default:"(any)" }}
+When   : {{ alert.created_at }}
+Rule   : {{ rule_name }}
+Threshold: {{ rule.condition }} {{ rule.threshold_value }}
+
+Open the dashboard to acknowledge or resolve this alert.

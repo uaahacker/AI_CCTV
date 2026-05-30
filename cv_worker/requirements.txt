@@ -1,0 +1,14 @@
+# Worker depends on backend/ Django code via PYTHONPATH (see worker/settings.py).
+opencv-python-headless==4.10.0.84
+numpy==1.26.4
+python-dotenv==1.0.1
+
+# Required Django stack (must match backend/requirements.txt versions).
+Django==5.0.6
+psycopg[binary]==3.1.19
+celery==5.4.0
+redis==5.0.4
+cryptography==42.0.7
+
+# Optional — install only when DETECTOR=yolo
+# ultralytics==8.2.0

@@ -1,0 +1,182 @@
+# AI CCTV Analytics SaaS — full-stack compose for local + small VPS deploys.
+#
+# Usage:
+#   cp .env.example .env   # then edit, set SECRET_KEY + FIELD_ENCRYPTION_KEY
+#   docker compose build
+#   docker compose up -d
+#   docker compose exec backend python manage.py createsuperuser
+#   open http://localhost
+#
+# Profiles:
+#   default      → db, redis, backend, celery_worker, celery_beat, cv_worker, frontend
+#   production   → adds the standalone nginx reverse-proxy (for TLS termination)
+
+x-django-env: &django-env
+  SECRET_KEY: ${SECRET_KEY}
+  DEBUG: ${DEBUG:-False}
+  ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+  DATABASE_URL: ${DATABASE_URL}
+  REDIS_URL: ${REDIS_URL}
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+  CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+  FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY}
+  EMAIL_BACKEND: ${EMAIL_BACKEND}
+  DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+  EMAIL_HOST: ${EMAIL_HOST}
+  EMAIL_PORT: ${EMAIL_PORT}
+  EMAIL_HOST_USER: ${EMAIL_HOST_USER}
+  EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
+  EMAIL_USE_TLS: ${EMAIL_USE_TLS}
+  ALERT_COOLDOWN_SECONDS: ${ALERT_COOLDOWN_SECONDS:-300}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cctv}
+      POSTGRES_USER: ${POSTGRES_USER:-cctv}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cctv}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cctv} -d ${POSTGRES_DB:-cctv}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *django-env
+      ROLE: web
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - backend_static:/app/staticfiles
+      - backend_media:/app/media
+    expose:
+      - "8000"
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *django-env
+      ROLE: celery
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "config", "worker", "-l", "info", "--concurrency", "4"]
+
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *django-env
+      ROLE: beat
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "config", "beat", "-l", "info"]
+
+  cv_worker:
+    build:
+      context: .                  # repo root so the Dockerfile can copy backend/
+      dockerfile: cv_worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *django-env
+      DJANGO_SETTINGS_MODULE: config.settings
+      BACKEND_PATH: /backend
+      DETECTOR: ${DETECTOR:-dummy}
+      SAMPLE_INTERVAL_SECONDS: ${SAMPLE_INTERVAL_SECONDS:-5}
+      CAMERA_REFRESH_SECONDS: ${CAMERA_REFRESH_SECONDS:-30}
+      RTSP_READ_TIMEOUT_SECONDS: ${RTSP_READ_TIMEOUT_SECONDS:-10}
+      RECONNECT_BACKOFF_SECONDS: ${RECONNECT_BACKOFF_SECONDS:-15}
+      MAX_CAMERAS: ${MAX_CAMERAS:-64}
+      DUMMY_MAX_PEOPLE: ${DUMMY_MAX_PEOPLE:-15}
+      YOLO_MODEL: ${YOLO_MODEL:-yolov8n.pt}
+      YOLO_CONF: ${YOLO_CONF:-0.35}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: ${VITE_API_BASE}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+
+  # --- Production-only: TLS-terminating reverse proxy ---------------------
+  nginx:
+    image: nginx:1.27-alpine
+    profiles: ["production"]
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./infra/nginx/certs:/etc/nginx/certs:ro
+      - certbot_www:/var/www/certbot:ro
+
+  # --- Optional: local LLM via Ollama -------------------------------------
+  # Enable with:  docker compose --profile local-ai up -d
+  # Bound to 127.0.0.1 only so it's NEVER reachable from the public internet
+  # without an explicit reverse-proxy + auth in front of it.
+  # In the dashboard, configure AI provider → "Local Ollama" with base URL
+  #   http://ollama:11434/v1
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["local-ai"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  pg_data:
+  redis_data:
+  backend_static:
+  backend_media:
+  certbot_www:
+  ollama_data:
