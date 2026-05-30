@@ -59,7 +59,7 @@ from apps.cameras.models import Camera, CameraHealthCheck, Zone  # noqa: E402
 logger = logging.getLogger(__name__)
 
 
-def _frame_source_url(camera: Camera) -> str:
+def _frame_source_url(camera: Camera) -> str | None:
     """Pick the cheapest reliable place to read frames from.
 
     The HLS streamer sidecar already holds one RTSP session against the
@@ -69,15 +69,16 @@ def _frame_source_url(camera: Camera) -> str:
         NVRs — reject the second SETUP with 403),
       * uses zero extra upstream bandwidth,
       * is decoded from the local filesystem so it's much faster.
-    Falls back to the raw RTSP URL when no HLS file exists yet (e.g. on the
-    first 1–2s after a brand-new camera is added).
+    Returns ``None`` if the playlist isn't ready yet — the caller should
+    skip the tick quietly rather than fall back to RTSP, because falling
+    back would race the streamer for the same upstream session.
     """
     from pathlib import Path
     media_root = Path(str(getattr(dj_settings, "MEDIA_ROOT", "media")))
     hls = media_root / "hls" / str(camera.id) / "index.m3u8"
     if hls.exists():
         return str(hls)
-    return camera.rtsp_url
+    return None
 
 # Event types that warrant flushing a rolling evidence clip.
 _CLIPPABLE_EVENTS = {
@@ -193,6 +194,24 @@ class _CameraState:
 def process_one(camera: Camera, detector: BaseDetector, state: _CameraState | None = None) -> None:
     """Single tick for one camera: read + detect + track + persist."""
     source_url = _frame_source_url(camera)
+    if source_url is None:
+        # Streamer hasn't produced a playlist yet (just-added camera, ffmpeg
+        # warming up, or upstream temporarily unreachable). Skip this tick
+        # silently — we deliberately do NOT fall back to RTSP because that
+        # would race the streamer for the single upstream session that most
+        # providers (Wowza, many NVRs) allow.
+        if state is not None:
+            state.ticks_waiting_hls = getattr(state, "ticks_waiting_hls", 0) + 1
+            # Surface as OFFLINE only after ~30s of waiting, so transient
+            # segment-rotation gaps don't flap the camera status.
+            if state.ticks_waiting_hls == 6:
+                logger.info("Camera %s waiting for HLS playlist", camera.name)
+                camera.status = Camera.Status.OFFLINE
+                camera.last_error = "waiting for stream"
+                camera.save(update_fields=["status", "last_error", "updated_at"])
+        return
+    if state is not None:
+        state.ticks_waiting_hls = 0
     reader = RtspReader(source_url, open_timeout_s=cfg.RTSP_READ_TIMEOUT_SECONDS)
     result = reader.read_one()
 
