@@ -130,6 +130,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      # Shared with the streamer + backend:
+      #   * read: HLS segments produced by the streamer sidecar so we don't
+      #     open a second upstream RTSP session (which many providers, e.g.
+      #     Wowza, reject with 403 on the second SETUP).
+      #   * write: evidence clips for triggered alerts (clips/<camera>/...).
+      - backend_media:/app/media
 
   frontend:
     build:

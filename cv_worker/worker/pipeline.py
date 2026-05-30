@@ -58,6 +58,27 @@ from apps.cameras.models import Camera, CameraHealthCheck, Zone  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
+
+def _frame_source_url(camera: Camera) -> str:
+    """Pick the cheapest reliable place to read frames from.
+
+    The HLS streamer sidecar already holds one RTSP session against the
+    upstream camera and writes segments to MEDIA_ROOT/hls/<id>/index.m3u8.
+    Reading from that local playlist:
+      * avoids opening a second RTSP session (many providers — Wowza, some
+        NVRs — reject the second SETUP with 403),
+      * uses zero extra upstream bandwidth,
+      * is decoded from the local filesystem so it's much faster.
+    Falls back to the raw RTSP URL when no HLS file exists yet (e.g. on the
+    first 1–2s after a brand-new camera is added).
+    """
+    from pathlib import Path
+    media_root = Path(str(getattr(dj_settings, "MEDIA_ROOT", "media")))
+    hls = media_root / "hls" / str(camera.id) / "index.m3u8"
+    if hls.exists():
+        return str(hls)
+    return camera.rtsp_url
+
 # Event types that warrant flushing a rolling evidence clip.
 _CLIPPABLE_EVENTS = {
     DetectionEvent.EventType.PEOPLE_COUNT,
@@ -171,7 +192,8 @@ class _CameraState:
 
 def process_one(camera: Camera, detector: BaseDetector, state: _CameraState | None = None) -> None:
     """Single tick for one camera: read + detect + track + persist."""
-    reader = RtspReader(camera.rtsp_url, open_timeout_s=cfg.RTSP_READ_TIMEOUT_SECONDS)
+    source_url = _frame_source_url(camera)
+    reader = RtspReader(source_url, open_timeout_s=cfg.RTSP_READ_TIMEOUT_SECONDS)
     result = reader.read_one()
 
     # --- Update health, regardless of detection success -------------------
