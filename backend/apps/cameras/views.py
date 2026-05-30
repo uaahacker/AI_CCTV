@@ -28,6 +28,24 @@ class CameraViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         cam = serializer.save()
+        # Bootstrap analytics for a brand-new camera so the user sees real
+        # numbers immediately, without having to draw zones first:
+        #   * a horizontal LINE zone across the middle of the frame counts
+        #     anything that crosses it (people IN/OUT, vehicles IN/OUT).
+        # Existing cameras / explicit zones are left untouched.
+        try:
+            from .models import Zone  # local import to avoid circular at import time
+            if not Zone.objects.filter(camera=cam).exists():
+                Zone.objects.create(
+                    camera=cam,
+                    name="Auto: counter line",
+                    kind=Zone.Kind.LINE,
+                    geometry=[[0.05, 0.5], [0.95, 0.5]],  # normalised across the frame
+                    direction=Zone.Direction.BOTH,
+                    is_active=True,
+                )
+        except Exception:  # noqa: BLE001 — never fail camera create on a side-effect
+            pass
         log_action(
             user=self.request.user,
             action="camera.create",

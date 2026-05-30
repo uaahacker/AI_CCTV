@@ -210,8 +210,13 @@ def process_one(camera: Camera, detector: BaseDetector, state: _CameraState | No
 
     # Strip the heavy bbox list out before persistence — we keep a compact
     # summary in metadata, and the rich bbox info is only needed in-memory.
-    metadata_for_db = {k: v for k, v in (det.metadata or {}).items() if k != "boxes"}
+    metadata_for_db = {
+        k: v for k, v in (det.metadata or {}).items()
+        if k != "boxes"  # bbox list is huge, keep it out of DB
+    }
     metadata_for_db["bbox_count"] = len(det.metadata.get("boxes", []) if det.metadata else [])
+    # `class_counts` (when produced by the real YOLO detector) lets the UI
+    # show a person / car / truck breakdown without re-running inference.
 
     event_id = _persist_event(
         camera=camera,

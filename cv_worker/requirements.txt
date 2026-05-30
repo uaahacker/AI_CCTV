@@ -20,5 +20,6 @@ django-filter==24.2
 drf-spectacular==0.27.2
 whitenoise==6.7.0
 
-# Optional — install only when DETECTOR=yolo
-# ultralytics==8.2.0
+# Real-detector default — person + vehicle detection via YOLOv8n.
+# Pulls torch (CPU build, ~700MB). Set DETECTOR=dummy in env to skip.
+ultralytics==8.2.0

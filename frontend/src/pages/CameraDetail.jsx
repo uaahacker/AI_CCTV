@@ -67,12 +67,50 @@ export default function CameraDetail() {
             <div className="text-sm text-slate-500">No events yet. Start the CV worker to populate.</div>
           ) : (
             <ul className="divide-y divide-slate-200 dark:divide-slate-800 text-sm">
-              {events.slice(0, 10).map((e) => (
-                <li key={e.id} className="py-2 flex justify-between">
-                  <span>{e.event_type} · <span className="font-medium">{e.people_count}</span></span>
-                  <span className="text-slate-500 text-xs">{fmtDate(e.created_at)}</span>
-                </li>
-              ))}
+              {events.slice(0, 10).map((e) => {
+                const cc = e.metadata?.class_counts || {};
+                const chips = Object.entries(cc)
+                  .filter(([k, v]) => k !== 'vehicles' && v > 0)
+                  .slice(0, 6);
+                const det = e.metadata?.detector;
+                return (
+                  <li key={e.id} className="py-2">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <div>
+                          {e.event_type === 'line_crossing' && e.metadata?.label ? (
+                            <>
+                              <span className="font-medium capitalize">{e.metadata.label}</span>
+                              <span className="text-slate-500"> crossed line · </span>
+                              <span className="font-medium">{e.metadata.direction || ''}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>{e.event_type}</span>
+                              {typeof e.people_count === 'number' && (
+                                <span> · <span className="font-medium">{e.people_count}</span> people</span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        {chips.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {chips.map(([label, n]) => (
+                              <span key={label} className="badge-gray capitalize">{label}: {n}</span>
+                            ))}
+                          </div>
+                        )}
+                        {typeof e.confidence === 'number' && e.confidence > 0 && (
+                          <div className="text-xs text-slate-400 mt-1">
+                            {det ? `${det} · ` : ''}confidence {(e.confidence * 100).toFixed(0)}%
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-slate-500 text-xs whitespace-nowrap">{fmtDate(e.created_at)}</span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

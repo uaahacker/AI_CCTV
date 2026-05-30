@@ -314,7 +314,7 @@ AI_API_KEY=${AI_API_KEY}
 AI_MODEL=${AI_MODEL}
 
 # CV worker
-DETECTOR=dummy
+DETECTOR=yolo
 FRAME_INTERVAL_SECONDS=2
 EOF
   chmod 600 "$env_file"

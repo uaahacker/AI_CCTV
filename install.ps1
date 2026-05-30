@@ -198,7 +198,7 @@ AI_PROVIDER=$global:AI_PROVIDER
 AI_API_KEY=$global:AI_API_KEY
 AI_MODEL=$global:AI_MODEL
 
-DETECTOR=dummy
+DETECTOR=yolo
 FRAME_INTERVAL_SECONDS=2
 "@ | Set-Content -Encoding ASCII $envFile
 }
