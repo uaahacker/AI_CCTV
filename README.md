@@ -256,3 +256,7 @@ responsible-disclosure reports (see [SECURITY.md](SECURITY.md) §12), or just
 to say hi.
 
 **Deployer's note** — this software performs video analytics on real-world camera footage. Compliance with local laws (GDPR, CCPA, biometrics regulations) is your responsibility as the deployer. The MIT licence disclaims all warranties.
+
+---
+
+Portfolio project by Ubaid Ullah. For professional Django, SaaS, AI automation, API, dashboard, and cloud deployment work, visit [Djangix](https://djangix.com/).
